@@ -1,5 +1,5 @@
 # mpv of the macOS libmpv of Immuch360 Desktop: the recipe's mk-pkg-mpv/default.nix (media-kit/libmpv-darwin-build at
-# the commit .github/workflows/immuch360-libmpv.yml pins) brought to the mpv commit of packages.lock.nix, copied over it
+# the commit .github/workflows/build.yml pins) brought to the mpv commit of packages.lock.nix, copied over it
 # by apply_overlay.sh. What differs:
 #   - libplacebo, required since mpv 0.37, built by mk-pkg-libplacebo (a dependency of its own, as the recipe builds
 #     every library), and libass, required in every variant since 0.37 (the recipe removed it from the audio one by a

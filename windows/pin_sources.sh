@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Checks the git sources of the libmpv build out at the commits of sources.lock, for
-# .github/workflows/immuch360-libmpv.yml.
+# .github/workflows/build.yml.
 #
 # Usage: pin_sources.sh <lock file> <source folder> <pinned|heads> <package>...
 #

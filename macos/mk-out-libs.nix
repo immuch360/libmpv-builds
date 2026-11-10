@@ -1,5 +1,5 @@
 # The libraries of the macOS libmpv of Immuch360 Desktop: the recipe's mk-out-libs/default.nix
-# (media-kit/libmpv-darwin-build at the commit .github/workflows/immuch360-libmpv.yml pins) with libplacebo among the
+# (media-kit/libmpv-darwin-build at the commit .github/workflows/build.yml pins) with libplacebo among the
 # libraries that libmpv needs at run time (mk-pkg-libplacebo.nix), copied over it by apply_overlay.sh. Its dylib then
 # becomes Placebo.framework, next to Mpv.framework and the others.
 {

@@ -1,4 +1,4 @@
-# FFmpeg for the libmpv of Immuch360 Desktop on Windows, built by .github/workflows/immuch360-libmpv.yml.
+# FFmpeg for the libmpv of Immuch360 Desktop on Windows, built by .github/workflows/build.yml.
 #
 # Copied over packages/ffmpeg.cmake of the build recipe before it is configured. The configuration is media_kit's
 # video one (media-kit/libmpv-win32-video-cmake, the libmpv that media_kit_libs_windows_video ships), as kept building
@@ -10,7 +10,7 @@
 #     and format filters and the converters libavfilter inserts between them), the ProRes, VC-1 and raw video
 #     decoders, the yuv4mpegpipe demuxer for lossless reference clips, and the AV1, VP9 and VC-1 parsers.
 # --enable-version3 stays: OpenSSL 3 is Apache-2.0, compatible with version 3 of the LGPL, so FFmpeg as built here is
-# LGPL-3.0-or-later (mobile/packages/media_kit_video/windows/NOTICES.md).
+# LGPL-3.0-or-later (NOTICES.md).
 if(NOT IMMUCH360_FFMPEG_REF)
     message(FATAL_ERROR "IMMUCH360_FFMPEG_REF is not set: the workflow passes the FFmpeg commit or tag with "
         "-DIMMUCH360_FFMPEG_REF=")

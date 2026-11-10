@@ -1,4 +1,4 @@
-# mpv (libmpv-2.dll) for Immuch360 Desktop on Windows, built by .github/workflows/immuch360-libmpv.yml.
+# mpv (libmpv-2.dll) for Immuch360 Desktop on Windows, built by .github/workflows/build.yml.
 #
 # Copied over packages/mpv.cmake of the build recipe before it is configured. Same as the one of
 # Predidit/libmpv-win32-video-cmake at fdf75129 (media_kit's video configuration, -Dgpl=false so that mpv is

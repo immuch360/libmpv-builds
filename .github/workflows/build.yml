@@ -1,76 +1,79 @@
-name: Immuch360 libmpv for Windows and macOS
+name: libmpv for Windows and macOS
 
-# Rebuilds libmpv-2.dll (mpv with FFmpeg), the library media_kit plays video with in Immuch360 Desktop, for Windows x64
-# and arm64, and publishes both archives with their SHA-256, their licence texts and their sources, as artifacts of the
-# run and on a release of its own tag (libmpv-windows-<date>-<run number>). media_kit_libs_windows_video pins that
-# release in mobile/packages/media_kit_libs_windows_video/windows/CMakeLists.txt (switch IMMUCH360_LIBMPV_FROM_CI).
+# Builds libmpv (mpv with FFmpeg) from pinned sources and publishes it with its SHA-256 sums, its licence texts and its
+# corresponding source: libmpv-2.dll for Windows x64 and arm64 on a release of its own tag
+# (libmpv-windows-<date>-<run number>), and the macOS xcframeworks, arm64 and x86_64 in one, on another
+# (libmpv-macos-<date>-<run number>). The Windows archives are laid out like media-kit's, so the CMakeLists.txt of
+# media_kit_libs_windows_video pins a release by its tag and the SHA-256 of each archive (README.md); the macOS zips are
+# the binary targets of the Package.swift of media_kit_libs_macos_video. Immuch360 Desktop plays video with them
+# (https://github.com/freeKC/Immuch360, where this recipe was first written).
 #
 # Why: media_kit_libs_windows_video downloads media-kit's archive of 2024-10-21 (FFmpeg N-117622), older than the
-# FFmpeg security fixes since, for an app that opens files and streams it does not control (plan 20, 2.2 and 2.7;
-# design 20, 2.1). The licences are in mobile/packages/media_kit_video/windows/NOTICES.md.
+# FFmpeg security fixes since, and an app that opens files and streams it does not control needs those fixes. The
+# licences of what is built are in NOTICES.md.
 #
 # The recipe. media-kit/libmpv-win32-video-cmake, a fork of shinchiro/mpv-winbuild-cmake, cross-compiles mpv and the
 # libraries it needs with LLVM and mingw-w64 in an Arch Linux container. Its master became the audio only configuration
 # on 2025-12-11 (merge 54b5655: no video decoder, mpv without OpenGL) and its last runs failed; its fork
 # Predidit/libmpv-win32-video-cmake keeps the video recipe building on hosted runners (green on 2026-09-15). This
-# workflow checks that fork out at a pinned commit and copies the two files of .github/desktop/libmpv/ over it: FFmpeg
-# and mpv in media_kit's video configuration, without the fork's own patches (one of them turns TLS certificate
-# verification off by default). The recipe, FFmpeg and mpv are inputs, so an FFmpeg security release is one dispatch
-# away; the defaults are the commits the fork built green. Every other git package of the recipe would clone the head
-# of its branch on the day of the run: the sources and toolchain jobs check each one out at its commit in
-# .github/desktop/libmpv/sources.lock (pin_sources.sh), so that a run builds known code and a release always does.
+# workflow checks that fork out at a pinned commit and copies the two files of windows/ over it: FFmpeg and mpv in
+# media_kit's video configuration, without the fork's own patches (one of them turns TLS certificate verification off
+# by default). The recipe, FFmpeg and mpv are inputs, so an FFmpeg security release is one dispatch away; the defaults
+# are the commits the fork built green. Every other git package of the recipe would clone the head of its branch on the
+# day of the run: the sources and toolchain jobs check each one out at its commit in windows/sources.lock
+# (windows/pin_sources.sh), so that a run builds known code and a release always does.
 #
 # The container. shinchiro/archlinux, the Arch Linux image the recipe is made for, is rebuilt every day and its registry
 # keeps only the newest image: a digest of it is gone within a day or two. The image job copies the pinned digest once
 # into this repository's own package (ghcr.io/<owner>/libmpv-build, same digest) and every build job pulls it from
-# there; when the digest is in neither place, the run stops in its first minute and says what to pin.
+# there. The digest pinned below was first copied by the recipe's previous home, whose public package
+# ghcr.io/freekc/libmpv-build still holds it, so the image job copies from there when shinchiro's registry no longer
+# has it; when the digest is in none of these places, the run stops in its first minute and says what to pin.
 #
-# Time on hosted runners (4 processors): the toolchain (LLVM with clang and lld, then the mingw-w64 runtime for both
-# targets) about 2 to 3 hours when it is not in the cache (the recipe's own toolchain workflow, which builds LLVM twice
-# for profile guided optimisation, takes 3.1 to 4.8 hours there); then each architecture, in parallel, about 1 to 3
-# hours from cold. The toolchain is cached by recipe commit, so a rerun within a week starts at the libraries. Every job
-# stays under the 6 hour limit of hosted jobs; standard runners cost no minutes on a public repository.
+# Time on hosted runners (4 processors), measured on the runs of October and November 2026: the toolchain (LLVM with
+# clang and lld, then the mingw-w64 runtime for both targets) 79 to 113 minutes when it is not in the cache (the
+# recipe's own toolchain workflow, which builds LLVM twice for profile guided optimisation, takes 3.1 to 4.8 hours
+# there); then each architecture, in parallel, 28 to 50 minutes; the macOS build 8 to 11 minutes beside them. A run
+# from a cold cache takes about 2.5 hours, one with the toolchain cached about 45 minutes. The toolchain is cached by
+# recipe commit and toolchain pins, so a rerun within a week starts at the libraries. Every job stays under the 6 hour
+# limit of hosted jobs; standard runners cost no minutes on a public repository.
 #
 # Jobs:
-#   image      the build container: found in this repository's package, or copied there from shinchiro's
+#   image      the build container: found in this repository's package, or copied there from the places above
 #   sources    the sources of every library mpv needs, downloaded once and checked out at their pins so that both
 #              architectures build the same commits; packed for the build jobs, and without git data for the release
 #   toolchain  LLVM and the two mingw-w64 sysroots at their pins, from the cache or built
 #   libmpv     x86_64 and aarch64: the libraries and libmpv-2.dll, then an archive laid out like media-kit's
 #              (libmpv-2.dll, libmpv.dll.a, include/mpv), plus licenses/ and BUILDINFO.txt
-#   publish    SHA256SUMS.txt and the release: a pre-release that is never marked latest, so the phone release stays
-#              first on the release page; the run summary prints the lines to paste into the CMake of the libs package
+#   publish    SHA256SUMS.txt and the release libmpv-windows-<date>-<run>, marked as the latest release of the
+#              repository; the run summary prints the lines to paste into the CMakeLists.txt that pins it
 #
-# macOS (the same policy: the project's own build from pinned sources, published with them). The recipe is
+# macOS (the same policy: a build from pinned sources, published with them). The recipe is
 # media-kit/libmpv-darwin-build, the Nix build media_kit_libs_macos_video downloads its frameworks from, checked out at
-# a pinned commit (input macos_recipe_ref) with the files of .github/desktop/libmpv-macos/ over it (apply_overlay.sh):
-# its own pins stop at FFmpeg 6.0 and mpv 0.36 of 2023, so the overlay brings FFmpeg and mpv to the commits of the
-# Windows build (packages.lock.nix there, with libplacebo, which mpv now needs); the other libraries keep the recipe's
-# versions. Its default flavor, as media-kit's: mpv with -Dgpl=false, FFmpeg without GPL or nonfree parts, so LGPL,
-# with two FFmpeg options more that the Windows build has too (mk-pkg-ffmpeg-meson.build): the yuv4mpegpipe demuxer and
-# the rawvideo decoder, with which libmpv reads the y4m that the AV2 decoder of the app serves over HTTP. Jobs:
+# a pinned commit (input macos_recipe_ref) with the files of macos/ over it (macos/apply_overlay.sh): its own pins stop
+# at FFmpeg 6.0 and mpv 0.36 of 2023, so the overlay brings FFmpeg and mpv to the commits of the Windows build
+# (macos/packages.lock.nix, with libplacebo, which mpv now needs); the other libraries keep the recipe's versions. Its
+# default flavor, as media-kit's: mpv with -Dgpl=false, FFmpeg without GPL or nonfree parts, so LGPL, with two FFmpeg
+# options more that the Windows build has too (macos/mk-pkg-ffmpeg-meson.build): the yuv4mpegpipe demuxer and the
+# rawvideo decoder, with which libmpv reads the y4m that the AV2 decoder of Immuch360 serves over HTTP. Jobs:
 #   macos-sources  every archive of the lock downloaded and checked by its SHA-256, the recipe with the overlay, the
 #                  licence texts of each library; packed for the release
 #   macos-libmpv   the Nix build on macos-15 with a pinned Xcode, for macOS 12 and later, arm64 and x86_64 in one
 #                  universal xcframework per library; the archive, one zip per xcframework for Swift Package Manager,
 #                  and BUILDINFO-macos.txt; the frameworks checked first: no function looked up at run time that no
-#                  library defines (check_undefined.py), and a y4m read, 8 and 10 bit, from a file and over HTTP with
-#                  exact seeks, on each architecture the runner runs (check_y4m.py), so that nothing is published
-#                  that the AV2 path of the app cannot play
-#   macos-publish  the release libmpv-macos-<date>-<run>, a pre-release never marked latest; the run summary prints the
-#                  lines to paste into the Package.swift of mobile/packages/media_kit_libs_macos_video
-# The macOS build takes FFmpeg and mpv from packages.lock.nix, never from the ffmpeg_ref and mpv_ref inputs, which are
-# the Windows build's (test/desktop/ci/libmpv_macos_pins_test.dart keeps the two at the same commits). The input systems
-# runs one of the two only; the quarterly run from the heads is Windows only (the macOS lock has no heads mode).
+#                  library defines (macos/check_undefined.py), and a y4m read, 8 and 10 bit, from a file and over HTTP
+#                  with exact seeks, on each architecture the runner runs (macos/check_y4m.py)
+#   macos-publish  the release libmpv-macos-<date>-<run>, never marked latest; the run summary prints the lines to paste
+#                  into the Package.swift of media_kit_libs_macos_video
+# The macOS build takes FFmpeg and mpv from macos/packages.lock.nix, never from the ffmpeg_ref and mpv_ref inputs, which
+# are the Windows build's (tests/test_recipe.py keeps the two at the same commits). The input systems runs one of the
+# two only; the heads mode is Windows only (the macOS lock has no heads mode).
 #
-# Triggers: by hand (workflow_dispatch, once this file is on the default branch); every quarter (schedule, default
-# branch only), from the head of every library, to show what a refresh of the lock would bring: it publishes nothing
-# and its summary prints the new lock lines; pushes to the desktop branch that change this file,
-# .github/desktop/libmpv/ (the lock included) or .github/desktop/libmpv-macos/, which build and check both libmpv and
-# publish nothing (review of lot AD4 of the AV2 videos, n4: the merge of a branch that touches the recipe would publish
-# two pre-releases nobody pins, as libmpv-macos-20261020-10 beside the pinned -9).
-# Only a run by hand from pinned sources, with publish, publishes. No secret is used; two jobs can write: image
-# (packages, the copy of the container) and publish (contents, the release).
+# Triggers: by hand (workflow_dispatch), the only run that publishes, from pinned sources and with publish on; pull
+# requests that change this file, windows/ or macos/, which build and check both libmpv and publish nothing. No
+# schedule: the owner decides when to rebuild, and a dispatch with sources set to heads shows what a refresh of the
+# lock would bring without publishing anything. No secret is used; three jobs can write: image (packages, the copy of
+# the container), publish and macos-publish (contents, the releases).
 
 on:
   workflow_dispatch:
@@ -96,7 +99,7 @@ on:
         default: '0b7ed670f7c353dd3dd4f8ae0fc788a181a15aa6'
         type: string
       sources:
-        description: 'pinned: the commits of .github/desktop/libmpv/sources.lock; heads: the head of each library (never published)'
+        description: 'pinned: the commits of windows/sources.lock; heads: the head of each library (never published)'
         required: false
         default: pinned
         type: choice
@@ -118,7 +121,7 @@ on:
           - windows
           - macos
       macos_recipe_ref:
-        description: 'macOS: full commit of media-kit/libmpv-darwin-build (FFmpeg and mpv come from .github/desktop/libmpv-macos)'
+        description: 'macOS: full commit of media-kit/libmpv-darwin-build (FFmpeg and mpv come from macos/packages.lock.nix)'
         required: false
         default: 'aadae8ce295dd15a222839c361c4c984ce9befb2'
         type: string
@@ -127,16 +130,12 @@ on:
         required: false
         default: 'mk-out-archive-xcframeworks-macos-universal-video-default'
         type: string
-  schedule:
-    # First day of each quarter, from the heads (see the header); FFmpeg security releases are dispatched by hand with
-    # ffmpeg_ref
-    - cron: '17 3 1 1,4,7,10 *'
-  push:
-    branches: [desktop]
+  # A change to the recipe is built and checked before it is merged; it publishes nothing
+  pull_request:
     paths:
-      - .github/workflows/immuch360-libmpv.yml
-      - .github/desktop/libmpv/**
-      - .github/desktop/libmpv-macos/**
+      - .github/workflows/build.yml
+      - windows/**
+      - macos/**
 
 permissions:
   contents: read
@@ -152,22 +151,24 @@ defaults:
     shell: bash
 
 env:
-  # Schedules and pushes have no inputs: the defaults below are the same as those of workflow_dispatch
+  # Pull requests have no inputs: the defaults below are the same as those of workflow_dispatch
   RECIPE_REPOSITORY: ${{ inputs.recipe_repository || 'Predidit/libmpv-win32-video-cmake' }}
   RECIPE_REF: ${{ inputs.recipe_ref || 'fdf75129fc694b5ca555ce73cffc43bb6943ae13' }}
   FFMPEG_REF: ${{ inputs.ffmpeg_ref || '5b9a3ad71a4b54979e7afc3a1a4269763c4f41fc' }}
   MPV_REF: ${{ inputs.mpv_ref || '0b7ed670f7c353dd3dd4f8ae0fc788a181a15aa6' }}
-  # The quarterly run builds from the heads; every other run from sources.lock unless dispatched with heads
-  SOURCES_MODE: ${{ github.event_name == 'schedule' && 'heads' || inputs.sources || 'pinned' }}
-  # The build container (see the header): its digest, and the registry it was first published to. To pin a new one,
-  # take the digest of ghcr.io/shinchiro/archlinux:latest and push within a day, before shinchiro replaces it.
+  # From windows/sources.lock unless dispatched with heads
+  SOURCES_MODE: ${{ inputs.sources || 'pinned' }}
+  # The build container (see the header): its digest, the registry it was first published to, and the public copy the
+  # recipe's previous home made of it. To pin a new one, take the digest of ghcr.io/shinchiro/archlinux:latest and
+  # dispatch within a day, before shinchiro replaces it.
   BUILD_IMAGE_DIGEST: sha256:c7dffe77b57d98b10e327dde12d3977faf4cb90aa7cb4f5eeac4e9d68d724239
   BUILD_IMAGE_UPSTREAM: ghcr.io/shinchiro/archlinux
+  BUILD_IMAGE_MIRROR: ghcr.io/freekc/libmpv-build
   # Bump the version when the toolchain job changes what it leaves in the cache
   TOOLCHAIN_CACHE: libmpv-toolchain-v1
-  # Meson comes from PyPI, checked by the hashes of .github/desktop/libmpv/meson-requirements.txt
+  # Meson comes from PyPI, checked by the hashes of windows/meson-requirements.txt
   # macOS (see the header): the recipe, its commit, the package built, and the one Xcode it builds with, named by its
-  # version as the desktop workflow names the app's. Not the app's 26.3: the libc++ of Xcode 26 refuses the
+  # version. Not Xcode 26: its libc++ refuses the
   # _LIBCPP_ENABLE_ASSERTIONS that the recipe's Meson (from its nixpkgs pin) defines for C++ (uchardet stops there);
   # Xcode 16.4, the image's default, only warns. The libraries need no macOS 26 SDK, and the app links them as they are
   MACOS_RECIPE_REPOSITORY: media-kit/libmpv-darwin-build
@@ -199,18 +200,26 @@ jobs:
           skopeo login ghcr.io --username "$GITHUB_ACTOR" --password-stdin <<< "$GH_TOKEN" > /dev/null
           if skopeo inspect --raw "docker://$own@$BUILD_IMAGE_DIGEST" > /dev/null 2>&1; then
             echo "found: $own@$BUILD_IMAGE_DIGEST"
-          elif skopeo inspect --raw "docker://$BUILD_IMAGE_UPSTREAM@$BUILD_IMAGE_DIGEST" > /dev/null 2>&1; then
+          else
+            from=""
+            for source in "$BUILD_IMAGE_UPSTREAM" "$BUILD_IMAGE_MIRROR"; do
+              if skopeo inspect --raw "docker://$source@$BUILD_IMAGE_DIGEST" > /dev/null 2>&1; then
+                from=$source
+                break
+              fi
+            done
+            if [ -z "$from" ]; then
+              gone="The build image $BUILD_IMAGE_DIGEST is in none of $own, $BUILD_IMAGE_UPSTREAM and $BUILD_IMAGE_MIRROR."
+              gone+=" Pin the digest of $BUILD_IMAGE_UPSTREAM:latest in BUILD_IMAGE_DIGEST and run this workflow within a"
+              gone+=" day, before it is replaced: skopeo inspect --format '{{.Digest}}' docker://$BUILD_IMAGE_UPSTREAM:latest"
+              echo "::error::$gone"
+              exit 1
+            fi
             # --preserve-digests: the copy keeps the pinned digest, or fails
             skopeo copy --preserve-digests --retry-times 3 \
-              "docker://$BUILD_IMAGE_UPSTREAM@$BUILD_IMAGE_DIGEST" "docker://$own:arch-${BUILD_IMAGE_DIGEST:7:12}"
+              "docker://$from@$BUILD_IMAGE_DIGEST" "docker://$own:arch-${BUILD_IMAGE_DIGEST:7:12}"
             skopeo inspect --raw "docker://$own@$BUILD_IMAGE_DIGEST" > /dev/null
-            echo "copied from $BUILD_IMAGE_UPSTREAM: $own@$BUILD_IMAGE_DIGEST"
-          else
-            gone="The build image $BUILD_IMAGE_DIGEST is neither in $own nor in $BUILD_IMAGE_UPSTREAM any more."
-            gone+=" Pin the digest of $BUILD_IMAGE_UPSTREAM:latest in BUILD_IMAGE_DIGEST and push within a day, before"
-            gone+=" it is replaced: skopeo inspect --format '{{.Digest}}' docker://$BUILD_IMAGE_UPSTREAM:latest"
-            echo "::error::$gone"
-            exit 1
+            echo "copied from $from: $own@$BUILD_IMAGE_DIGEST"
           fi
           echo "image=$own@$BUILD_IMAGE_DIGEST" >> "$GITHUB_OUTPUT"
 
@@ -246,8 +255,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          path: immuch360
-          sparse-checkout: .github/desktop/libmpv
+          path: builds
+          sparse-checkout: windows
 
       - name: Check out the recipe
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -261,10 +270,10 @@ jobs:
         run: |
           python -m pip --version || pacman -Sy --needed --noconfirm python-pip
           python -m pip install --break-system-packages --require-hashes \
-            -r immuch360/.github/desktop/libmpv/meson-requirements.txt
+            -r builds/windows/meson-requirements.txt
           meson --version
           ninja --version
-          cp immuch360/.github/desktop/libmpv/ffmpeg.cmake immuch360/.github/desktop/libmpv/mpv.cmake recipe/packages/
+          cp builds/windows/ffmpeg.cmake builds/windows/mpv.cmake recipe/packages/
 
       - name: Download what mpv needs
         run: |
@@ -289,7 +298,7 @@ jobs:
         id: pins
         run: |
           mapfile -t packages < packages.txt
-          bash immuch360/.github/desktop/libmpv/pin_sources.sh immuch360/.github/desktop/libmpv/sources.lock \
+          bash builds/windows/pin_sources.sh builds/windows/sources.lock \
             src_packages "$SOURCES_MODE" "${packages[@]}" > pins.txt
           if [ "$SOURCES_MODE" = pinned ]; then
             echo "pinned=true" >> "$GITHUB_OUTPUT"
@@ -298,7 +307,7 @@ jobs:
             {
               echo "### Library heads of this run (not published)"
               echo
-              echo "Lines for \`.github/desktop/libmpv/sources.lock\`, once the changes since the lock are reviewed:"
+              echo "Lines for \`windows/sources.lock\`, once the changes since the lock are reviewed:"
               echo
               echo '```'
               cat pins.txt
@@ -330,9 +339,9 @@ jobs:
           mapfile -t dirs < <(sed 's#^#src_packages/#' packages.txt)
           # With git data for the build jobs, which check the commits out as they are
           tar -cf - packages.txt SOURCES.txt "${dirs[@]}" | zstd -T0 -3 -q -o build-sources.tar.zst
-          # Without it for the release: the corresponding source of the DLL, with the recipe and the FFmpeg and mpv files
+          # Without it for the release: the corresponding source of the DLL, with the recipe and the files of windows/
           rm -rf recipe/.git
-          tar --exclude=.git -cf - SOURCES.txt recipe immuch360/.github/desktop/libmpv "${dirs[@]}" \
+          tar --exclude=.git -cf - SOURCES.txt recipe builds/windows "${dirs[@]}" \
             | xz -T0 -6 > "$TAG-sources.tar.xz"
           ls -l build-sources.tar.zst "$TAG-sources.tar.xz"
 
@@ -371,15 +380,15 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          path: immuch360
-          sparse-checkout: .github/desktop/libmpv
+          path: builds
+          sparse-checkout: windows
 
       - name: Cache key
         id: key
         run: |
           # The toolchain pins are part of the key, so that a new LLVM or mingw-w64 commit builds a new toolchain
           pins=$(awk '$1 == "llvm" || $1 == "mingw-w64" || $1 == "cppwinrt"' \
-            immuch360/.github/desktop/libmpv/sources.lock | sort | sha256sum | cut -c1-16)
+            builds/windows/sources.lock | sort | sha256sum | cut -c1-16)
           echo "key=$TOOLCHAIN_CACHE-$RECIPE_REF-$pins" >> "$GITHUB_OUTPUT"
 
       - name: Look for it in the cache
@@ -411,7 +420,7 @@ jobs:
           git config --global user.email "libmpv-build@localhost"
           python -m pip --version || pacman -Sy --needed --noconfirm python-pip
           python -m pip install --break-system-packages --require-hashes \
-            -r immuch360/.github/desktop/libmpv/meson-requirements.txt
+            -r builds/windows/meson-requirements.txt
           for bit in x86_64 aarch64; do
             cmake -DTARGET_ARCH="$bit-w64-mingw32" -DCOMPILER_TOOLCHAIN=clang \
               -DCMAKE_INSTALL_PREFIX="$PWD/clang_root" -DMINGW_INSTALL_PREFIX="$PWD/build_$bit/$bit-w64-mingw32" \
@@ -420,7 +429,7 @@ jobs:
             if [ "$bit" = x86_64 ]; then
               # The git sources first, checked out at their pins; the toolchain is never built from the heads
               ninja -C "build_$bit" llvm-download mingw-w64-download cppwinrt-download
-              bash immuch360/.github/desktop/libmpv/pin_sources.sh immuch360/.github/desktop/libmpv/sources.lock \
+              bash builds/windows/pin_sources.sh builds/windows/sources.lock \
                 src_packages pinned llvm mingw-w64 cppwinrt
               # LLVM itself is shared by both targets; no profile guided second build, which would add about 1.5 hours
               ninja -C "build_$bit" llvm
@@ -483,8 +492,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          path: immuch360
-          sparse-checkout: .github/desktop/libmpv
+          path: builds
+          sparse-checkout: windows
 
       - name: Check out the recipe
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -515,8 +524,8 @@ jobs:
           rm build-sources.tar.zst
           python -m pip --version || pacman -Sy --needed --noconfirm python-pip
           python -m pip install --break-system-packages --require-hashes \
-            -r immuch360/.github/desktop/libmpv/meson-requirements.txt
-          cp immuch360/.github/desktop/libmpv/ffmpeg.cmake immuch360/.github/desktop/libmpv/mpv.cmake recipe/packages/
+            -r builds/windows/meson-requirements.txt
+          cp builds/windows/ffmpeg.cmake builds/windows/mpv.cmake recipe/packages/
 
       - name: Build libmpv
         run: |
@@ -557,12 +566,12 @@ jobs:
           cp -r clang_root/share/immuch360-licenses/. "$dev/licenses/"
 
           {
-            echo "libmpv-2.dll for Windows $ARCH, built for Immuch360 Desktop"
+            echo "libmpv-2.dll for Windows $ARCH, built by $GITHUB_REPOSITORY"
             echo "run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
             echo "repository commit: $GITHUB_SHA"
-            echo "recipe: https://github.com/$RECIPE_REPOSITORY at $RECIPE_REF, with .github/desktop/libmpv/ffmpeg.cmake and mpv.cmake"
+            echo "recipe: https://github.com/$RECIPE_REPOSITORY at $RECIPE_REF, with windows/ffmpeg.cmake and windows/mpv.cmake"
             echo "container: $BUILD_IMAGE"
-            echo "sources: $SOURCES_MODE (pinned: the commits of .github/desktop/libmpv/sources.lock)"
+            echo "sources: $SOURCES_MODE (pinned: the commits of windows/sources.lock)"
             echo "mpv: $MPV_REF ($(git -C src_packages/mpv describe --tags --always 2>/dev/null))"
             echo "FFmpeg: $FFMPEG_REF ($(git -C src_packages/ffmpeg describe --tags --always 2>/dev/null))"
             echo "target: $ARCH-w64-mingw32, $(grep -E '^GCC_ARCH:' "build_$ARCH/CMakeCache.txt")"
@@ -611,13 +620,13 @@ jobs:
   publish:
     name: Release
     needs: [sources, libmpv]
-    # Only pinned sources are published, by hand and when asked: never the quarterly run from the heads, nor a push
+    # Only pinned sources are published, by hand and when asked: never a run from the heads, nor a pull request
     if: >-
       needs.sources.outputs.pinned == 'true' && github.event_name == 'workflow_dispatch' && inputs.publish
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
-      contents: write # creates the release and its tag; the only write of the workflow
+      contents: write # creates the release and its tag
     env:
       TAG: ${{ needs.sources.outputs.tag }}
     steps:
@@ -644,6 +653,7 @@ jobs:
           cat SHA256SUMS.txt
           sha() { grep -F " $1" SHA256SUMS.txt | cut -d' ' -f1; }
           {
+            echo "set(IMMUCH360_LIBMPV_RELEASES \"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/download\")"
             echo "set(IMMUCH360_LIBMPV_TAG \"$TAG\")"
             echo "set(IMMUCH360_LIBMPV_X64 \"$x64\")"
             echo "set(IMMUCH360_LIBMPV_X64_SHA256 \"$(sha "$x64")\")"
@@ -651,10 +661,10 @@ jobs:
             echo "set(IMMUCH360_LIBMPV_ARM64_SHA256 \"$(sha "$arm64")\")"
           } > ../cmake-pin.txt
           {
-            echo "libmpv-2.dll (mpv with FFmpeg) for Windows x64 and arm64, built by .github/workflows/immuch360-libmpv.yml for Immuch360 Desktop. Not an app release: the Windows build of the app downloads one of these archives and checks it by its SHA-256."
+            echo "libmpv-2.dll (mpv with FFmpeg) for Windows x64 and arm64, built from pinned sources by \`.github/workflows/build.yml\`. Each archive is laid out like media-kit's (\`libmpv-2.dll\`, \`libmpv.dll.a\`, \`include/mpv\`) with \`licenses/\` and \`BUILDINFO.txt\`: an app downloads one and checks it by its SHA-256 (README, Pin a release in a Flutter app)."
             echo
             echo "- mpv: \`$MPV_REF\`; FFmpeg: \`$FFMPEG_REF\`; recipe: \`$RECIPE_REPOSITORY\` at \`$RECIPE_REF\`. Every library and its commit: \`BUILDINFO-x86_64.txt\`, \`BUILDINFO-aarch64.txt\`."
-            echo "- Licence: GNU LGPL version 3 or later for the DLL as a whole (mpv LGPL-2.1-or-later, FFmpeg configured with --enable-version3); the licence texts are in \`licenses/\` inside each archive, the notices in \`mobile/packages/media_kit_video/windows/NOTICES.md\`."
+            echo "- Licence: GNU LGPL version 3 or later for the DLL as a whole (mpv LGPL-2.1-or-later, FFmpeg configured with --enable-version3); the licence texts are in \`licenses/\` inside each archive, the notices in \`NOTICES.md\` of the repository."
             echo "- Corresponding source: \`$TAG-sources.tar.xz\`."
             echo "- Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
             echo
@@ -675,15 +685,15 @@ jobs:
             gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber ./*
           else
             gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-              --title "libmpv for Windows, $TAG" --notes-file ../notes.md --prerelease --latest=false ./*
+              --title "libmpv for Windows, $TAG" --notes-file ../notes.md --latest ./*
           fi
 
-      - name: Lines for the CMake of the libs package
+      - name: Lines for the CMakeLists.txt that pins the release
         run: |
           {
             echo "### libmpv $TAG"
             echo
-            echo "Paste into \`mobile/packages/media_kit_libs_windows_video/windows/CMakeLists.txt\`, then turn \`IMMUCH360_LIBMPV_FROM_CI\` on there:"
+            echo "Paste into the \`windows/CMakeLists.txt\` of \`media_kit_libs_windows_video\` (README, Pin a release in a Flutter app), with \`IMMUCH360_LIBMPV_FROM_CI\` on:"
             echo
             echo '```cmake'
             cat cmake-pin.txt
@@ -693,7 +703,7 @@ jobs:
 
   macos-sources:
     name: macOS library sources
-    if: inputs.systems != 'windows' && github.event_name != 'schedule'
+    if: inputs.systems != 'windows'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     outputs:
@@ -710,8 +720,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          path: immuch360
-          sparse-checkout: .github/desktop/libmpv-macos
+          path: builds
+          sparse-checkout: macos
 
       - name: Check out the recipe
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -722,7 +732,7 @@ jobs:
           path: recipe
 
       - name: The overlay over the recipe
-        run: bash immuch360/.github/desktop/libmpv-macos/apply_overlay.sh recipe
+        run: bash builds/macos/apply_overlay.sh recipe
 
       # Every archive the build reads, as packages.lock.nix names it, checked by its SHA-256 here as Nix checks it there;
       # fftools-ffi is pinned by a Nix hash and serves the encoders flavor only, which is not built
@@ -748,7 +758,7 @@ jobs:
           done < archives.txt
 
       # The licence files of each library, as its sources hold them, for the release and for the notices of the app
-      # (licenses/NOTICES.md in the sources of mobile/packages/media_kit_libs_macos_video)
+      # (in Immuch360, licenses/NOTICES.md in the sources of media_kit_libs_macos_video)
       - name: Licence texts
         run: |
           mkdir -p licenses work
@@ -771,7 +781,7 @@ jobs:
           TAG: ${{ steps.tag.outputs.tag }}
         run: |
           rm -rf recipe/.git
-          tar -cf - archives.txt archives recipe licenses immuch360/.github/desktop/libmpv-macos \
+          tar -cf - archives.txt archives recipe licenses builds/macos \
             | xz -T0 -6 > "$TAG-sources.tar.xz"
           tar -czf "$TAG-licenses.tar.gz" licenses
           ls -l "$TAG-sources.tar.xz" "$TAG-licenses.tar.gz"
@@ -799,8 +809,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          path: immuch360
-          sparse-checkout: .github/desktop/libmpv-macos
+          path: builds
+          sparse-checkout: macos
 
       - name: Check out the recipe
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -811,9 +821,9 @@ jobs:
           path: recipe
 
       - name: The overlay over the recipe
-        run: bash immuch360/.github/desktop/libmpv-macos/apply_overlay.sh recipe
+        run: bash builds/macos/apply_overlay.sh recipe
 
-      # The recipe compiles with the Xcode it is given (its nix/overlays/xcode.nix): the one of the app's build
+      # The recipe compiles with the Xcode it is given (its nix/overlays/xcode.nix): MACOS_XCODE_VERSION
       - name: Xcode
         id: xcode
         run: |
@@ -860,20 +870,20 @@ jobs:
             # mpv links with -undefined dynamic_lookup (b_lundef=false in its meson.build): a function that no library
             # defines links all the same and is a jump to address 0 at run time. Only the IOSurface functions (the
             # process has IOSurface.framework loaded through CoreVideo) and objc_msgSend may be looked up so
-            python3 "$GITHUB_WORKSPACE/immuch360/.github/desktop/libmpv-macos/check_undefined.py" ../dist/*.zip
+            python3 "$GITHUB_WORKSPACE/builds/macos/check_undefined.py" ../dist/*.zip
             # The y4m of the AV2 decoder: the demuxer and the decoder of the overlay at work, the table in the run
-            # summary, its line in BUILDINFO-macos.txt (the app's tests read it there). The shell runs with pipefail
-            python3 "$GITHUB_WORKSPACE/immuch360/.github/desktop/libmpv-macos/check_y4m.py" run --zips ../dist/*.zip \
+            # summary, its line in BUILDINFO-macos.txt (Immuch360's tests read it there). The shell runs with pipefail
+            python3 "$GITHUB_WORKSPACE/builds/macos/check_y4m.py" run --zips ../dist/*.zip \
               --summary "$RUNNER_TEMP/y4m-check.txt" | tee -a "$GITHUB_STEP_SUMMARY"
           else
             tar -czhf "../dist/$MACOS_TARGET.tar.gz" -C result .
           fi
           {
-            echo "libmpv for macOS (arm64 and x86_64, macOS 12 and later), built for Immuch360 Desktop"
+            echo "libmpv for macOS (arm64 and x86_64, macOS 12 and later), built by $GITHUB_REPOSITORY"
             echo "release: $TAG"
             echo "run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
             echo "repository commit: $GITHUB_SHA"
-            echo "recipe: https://github.com/$MACOS_RECIPE_REPOSITORY at $MACOS_RECIPE_REF, with .github/desktop/libmpv-macos"
+            echo "recipe: https://github.com/$MACOS_RECIPE_REPOSITORY at $MACOS_RECIPE_REF, with macos/"
             echo "package: $MACOS_TARGET"
             echo "Xcode: $("$XCODE_PATH/Contents/Developer/usr/bin/xcodebuild" -version | tr '\n' ' ')"
             echo "Nix: $(nix --version)"
@@ -934,7 +944,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
-      contents: write # creates the release and its tag; with the Windows publish, the only writes of the workflow
+      contents: write # creates the release and its tag
     env:
       TAG: ${{ needs.macos-sources.outputs.tag }}
     steps:
@@ -971,10 +981,10 @@ jobs:
           } > ../package-pin.txt
           cat ../package-pin.txt
           {
-            echo "libmpv (mpv with FFmpeg) for macOS, arm64 and x86_64, macOS 12 and later, built by .github/workflows/immuch360-libmpv.yml for Immuch360 Desktop. Not an app release: the macOS build of the app downloads the xcframeworks of this release through Swift Package Manager, each checked by its SHA-256."
+            echo "libmpv (mpv with FFmpeg) for macOS, arm64 and x86_64, macOS 12 and later, built from pinned sources by \`.github/workflows/build.yml\`. One xcframework per library, each in its own zip for Swift Package Manager, which checks it by its SHA-256 (README, Pin a release in a Flutter app)."
             echo
-            echo "- Recipe: \`$MACOS_RECIPE_REPOSITORY\` at \`$MACOS_RECIPE_REF\` with \`.github/desktop/libmpv-macos\`: FFmpeg and mpv at the commits of the Windows build, every library and archive in \`BUILDINFO-macos.txt\`."
-            echo "- Licence: GNU LGPL version 3 or later for libmpv and FFmpeg as built (mpv -Dgpl=false, FFmpeg --enable-version3 without GPL or nonfree parts); the licence texts of each library are in \`$TAG-licenses.tar.gz\`, the notices in \`licenses/NOTICES.md\` of \`mobile/packages/media_kit_libs_macos_video\` and in the app."
+            echo "- Recipe: \`$MACOS_RECIPE_REPOSITORY\` at \`$MACOS_RECIPE_REF\` with \`macos/\`: FFmpeg and mpv at the commits of the Windows build, every library and archive in \`BUILDINFO-macos.txt\`."
+            echo "- Licence: GNU LGPL version 3 or later for libmpv and FFmpeg as built (mpv -Dgpl=false, FFmpeg --enable-version3 without GPL or nonfree parts); the licence texts of each library are in \`$TAG-licenses.tar.gz\`, the notices in \`NOTICES.md\` of the repository."
             echo "- Corresponding source: \`$TAG-sources.tar.xz\` (the recipe with the overlay, and every archive it builds from)."
             echo "- Checked on the build runner: every function the frameworks look up at run time is defined (\`check_undefined.py\`), and libmpv reads a y4m, 8 and 10 bit, from a file and over HTTP with exact seeks (\`check_y4m.py\`, its line in \`BUILDINFO-macos.txt\`)."
             echo "- Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
@@ -995,15 +1005,15 @@ jobs:
             gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber ./*
           else
             gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-              --title "libmpv for macOS, $TAG" --notes-file ../notes.md --prerelease --latest=false ./*
+              --title "libmpv for macOS, $TAG" --notes-file ../notes.md --latest=false ./*
           fi
 
-      - name: Lines for the Package.swift of the libs package
+      - name: Lines for the Package.swift that pins the release
         run: |
           {
             echo "### libmpv $TAG"
             echo
-            echo "Paste into \`mobile/packages/media_kit_libs_macos_video/macos/media_kit_libs_macos_video/Package.swift\`:"
+            echo "Paste into the \`Package.swift\` of \`media_kit_libs_macos_video\` (README, Pin a release in a Flutter app):"
             echo
             echo '```swift'
             cat package-pin.txt

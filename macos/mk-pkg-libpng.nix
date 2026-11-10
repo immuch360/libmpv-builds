@@ -1,5 +1,5 @@
 # libpng of the macOS libmpv of Immuch360 Desktop: the recipe's mk-pkg-libpng/default.nix (media-kit/libmpv-darwin-build
-# at the commit .github/workflows/immuch360-libmpv.yml pins), copied over it by apply_overlay.sh, with one line of
+# at the commit .github/workflows/build.yml pins), copied over it by apply_overlay.sh, with one line of
 # pngpriv.h changed. libpng 1.6.40 includes the <fp.h> of the classic Mac OS when TARGET_OS_MAC is defined and <math.h>
 # was not included yet; the SDK of Xcode 16 defines TARGET_OS_MAC there, has no <fp.h> and guards its <math.h> under
 # another name, so every file that includes pngpriv.h stops ("'fp.h' file not found"). Without TARGET_OS_MAC in that

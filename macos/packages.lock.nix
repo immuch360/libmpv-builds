@@ -1,8 +1,8 @@
 # The sources of the macOS libmpv of Immuch360 Desktop, copied over packages.lock.nix of the build recipe
 # (media-kit/libmpv-darwin-build) by apply_overlay.sh. Each sha256 is the SHA-256 of the archive as downloaded (the
-# recipe's fetch-tarball), except fftools-ffi's, a Nix hash; .github/workflows/immuch360-libmpv.yml checks every
+# recipe's fetch-tarball), except fftools-ffi's, a Nix hash; .github/workflows/build.yml checks every
 # archive again and publishes them with the release. FFmpeg, mpv, libplacebo, fast_float and the Vulkan headers are
-# the commits the Windows build uses (inputs of the workflow and .github/desktop/libmpv/sources.lock); the other
+# the commits the Windows build uses (inputs of the workflow and windows/sources.lock); the other
 # libraries keep the recipe's versions, except libpng, patched for the SDK of Xcode 16 (mk-pkg-libpng.nix).
 {
   dav1d = {

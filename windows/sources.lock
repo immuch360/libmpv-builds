@@ -1,4 +1,4 @@
-# Commits of the git sources of libmpv-2.dll, read by pin_sources.sh in .github/workflows/immuch360-libmpv.yml.
+# Commits of the git sources of libmpv-2.dll, read by pin_sources.sh in .github/workflows/build.yml.
 #
 # Why: most packages of the build recipe clone the head of a branch on the day of the run, so two runs of the same
 # workflow would build different code, and a bad commit pushed to any of some fifty repositories would reach a

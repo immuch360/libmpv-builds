@@ -1,5 +1,5 @@
 # FFmpeg of the macOS libmpv of Immuch360 Desktop: the recipe's mk-pkg-ffmpeg/default.nix (media-kit/libmpv-darwin-build
-# at the commit .github/workflows/immuch360-libmpv.yml pins) without its four patches, copied over it by
+# at the commit .github/workflows/build.yml pins) without its four patches, copied over it by
 # apply_overlay.sh. They were made for FFmpeg 6.0: two (HLS seek, DASH base URL) no longer apply to the FFmpeg commit of
 # packages.lock.nix and concern streams the app never gives libmpv (local files and its own loopback bridge), one is for
 # iOS only (HDR textures), and the VP9 one adds a separate VideoToolbox VP9 decoder where FFmpeg's vp9_videotoolbox

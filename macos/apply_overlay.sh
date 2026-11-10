@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Puts the files of this folder over a checkout of the macOS build recipe of libmpv (media-kit/libmpv-darwin-build), as
-# .github/workflows/immuch360-libmpv.yml does before it builds: the recipe at its pinned commit, brought to the FFmpeg
+# .github/workflows/build.yml does before it builds: the recipe at its pinned commit, brought to the FFmpeg
 # and mpv commits of the Windows build (see packages.lock.nix and the header of each .nix file).
 #
 #   apply_overlay.sh RECIPE_DIR
 #
 # Then the recipe builds for macOS 12 and later, the oldest macOS the app runs on (MACOSX_DEPLOYMENT_TARGET of
-# mobile/macos), instead of 10.9: libplacebo is C++20, whose library parts need a newer macOS than 10.9.
+# Immuch360's mobile/macos), instead of 10.9: libplacebo is C++20, whose library parts need a newer macOS than 10.9.
 #
 # FFmpeg's options: mk-pkg-ffmpeg-meson.build is the recipe's meson.build of mk-pkg-ffmpeg with the lines that say
 # Immuch360 (the yuv4mpegpipe demuxer and the rawvideo decoder, for the y4m of the AV2 decoder). It replaces the

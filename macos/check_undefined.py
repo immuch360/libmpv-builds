@@ -4,7 +4,7 @@
 mpv links with -undefined dynamic_lookup (b_lundef=false in its meson.build), so a function declared and never
 defined links all the same and becomes a jump to address 0 when it is first called: mpv_create crashed so on
 libmpv-macos-20261020-8, whose mpv called the Cocoa bridge of its Swift part (cocoa_set_input_context), which this
-build does not make. Run by .github/workflows/immuch360-libmpv.yml on the zips of the xcframeworks, on macOS (nm).
+build does not make. Run by .github/workflows/build.yml on the zips of the xcframeworks, on macOS (nm).
 
   check_undefined.py ZIP...
 
