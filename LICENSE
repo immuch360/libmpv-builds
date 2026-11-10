@@ -1,0 +1,73 @@
+MIT License
+
+Copyright (c) 2026 FreeKC
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+-------------------------------------------------------------------------------
+
+The licence above covers the scripts, workflows, tests and documentation of
+this repository. Three groups of files are modified copies of files of other
+projects, or changes to them, and keep the terms of those projects for the
+parts that come from them:
+
+1. macos/mk-out-libs.nix, macos/mk-pkg-ffmpeg.nix, macos/mk-pkg-ffmpeg-meson.build,
+   macos/mk-pkg-libpng.nix, macos/mk-pkg-mpv.nix and macos/packages.lock.nix are
+   made from files of media-kit/libmpv-darwin-build
+   (https://github.com/media-kit/libmpv-darwin-build), and
+   macos/mk-pkg-libplacebo.nix is modelled on them. The "default" flavor of
+   that recipe, the one built here, is under this licence:
+
+   MIT License
+
+   Copyright (c) 2023 birros
+
+   Permission is hereby granted, free of charge, to any person obtaining a copy
+   of this software and associated documentation files (the "Software"), to deal
+   in the Software without restriction, including without limitation the rights
+   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+   copies of the Software, and to permit persons to whom the Software is
+   furnished to do so, subject to the following conditions:
+
+   The above copyright notice and this permission notice shall be included in all
+   copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+   SOFTWARE.
+
+2. windows/ffmpeg.cmake and windows/mpv.cmake are made from packages/ffmpeg.cmake
+   and packages/mpv.cmake of the Windows build recipe of shinchiro
+   (https://github.com/shinchiro/mpv-winbuild-cmake), as carried by
+   media-kit/libmpv-win32-video-cmake and Predidit/libmpv-win32-video-cmake.
+   That recipe publishes no licence. The MIT licence above applies to the
+   changes made here; the parts that come from the recipe remain under the
+   terms of their authors.
+
+3. macos/immuch360-mpv-cocoa-without-swift.patch and
+   macos/immuch360-mpv-objc-language.patch change the meson.build of mpv
+   (https://github.com/mpv-player/mpv) and are offered under the licence of
+   mpv as built here, the GNU LGPL version 2.1 or later.
+
+The archives that the workflow builds and publishes (libmpv, FFmpeg and the
+libraries linked with them) are not covered by this file: see NOTICES.md.

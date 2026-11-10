@@ -1,34 +1,15 @@
-# Notices: the native libraries of the video player of Immuch360 Desktop on Windows
+# Notices
 
-The Windows build of Immuch360 places the files below next to `immuch360.exe`. `media_kit_libs_windows_video`
-(`mobile/packages/media_kit_libs_windows_video/windows/CMakeLists.txt`) downloads them, checks each archive by its
-SHA-256 and bundles them; this plugin, `media_kit_video`, draws the frames they decode. Both plugins are MIT (`LICENSE`
-in each package); Immuch360 itself is AGPL-3.0 (`LICENSE` at the root of the repository).
+This file says under which licences the archives of the releases of this repository are distributed, and what that
+gives you. The scripts, workflows and recipe files of the repository itself are under the MIT licence, with the
+exceptions listed in `LICENSE`. The licence texts this file refers to are in `licenses/`: `LGPL-3.0.txt`, `GPL-3.0.txt`
+(which version 3 of the LGPL adds to) and `Apache-2.0.txt`.
 
-| File | What it is | Licence |
-|---|---|---|
-| `libmpv-2.dll` | mpv's player library, with FFmpeg and the libraries listed below linked into it | GNU LGPL version 3 or later as a whole (below) |
-| `libEGL.dll`, `libGLESv2.dll` | ANGLE, OpenGL ES over Direct3D 11 | BSD-3-Clause |
-| `vk_swiftshader.dll`, `vulkan-1.dll` | SwiftShader and the Vulkan loader, shipped with that ANGLE build | Apache-2.0 |
-| `d3dcompiler_47.dll` | Microsoft's HLSL compiler, used by ANGLE | Microsoft, redistributable file of the Windows SDK |
+## libmpv-2.dll for Windows (releases `libmpv-windows-*`)
 
-The ANGLE files come from `ANGLE.7z` v1.0.1 of `alexmercerind/flutter-windows-ANGLE-OpenGL-ES` (SHA-256
-`cc5911bb15d596fd5a2b362613ad35b7093b427117269a7359054a65746a5f9a`), built for x64 only.
-
-The folder and the ZIP of the Windows build carry this file and the licence texts it refers to, in `licenses/`:
-`LGPL-3.0.txt` and `GPL-3.0.txt` (`libmpv-2.dll`), `Apache-2.0.txt` (SwiftShader, the Vulkan loader and the Apache-2.0
-libraries inside `libmpv-2.dll`) and `ANGLE-BSD-3-Clause.txt` (ANGLE). `.github/desktop/windows_bundle.py` copies them
-from the `licenses/` folder next to this file. With the fork's build of libmpv, the archive's own `licenses/` (one folder
-per library) and its `BUILDINFO.txt` go into `licenses/libmpv/` as well.
-
-## libmpv-2.dll
-
-### Which build the app carries
-
-| Switch `IMMUCH360_LIBMPV_FROM_CI` | Archive | Versions |
-|---|---|---|
-| off (the fallback; the default until desktop build 3) | `mpv-dev-x86_64-20241021-git-0f78584.7z`, SHA-256 `e23701df0adc1fe57c8ede3ff313513b0b80519870058c2d35ff02754284a007` (arm64: `mpv-dev-aarch64-20241021-git-0f78584.7z`, `d445d02ab2ee60b1b5988f08ce4d2394cdcc594e98321b746a313313e96133ae`), release `20241021` of `media-kit/libmpv-win32-video-cmake` | mpv v0.39.0-179-g0f78584518, FFmpeg N-117622-g8d940a07d (as the library reports them) |
-| on (the default since desktop build 4, release `libmpv-windows-20261009-3`) | the archives of a `libmpv-windows-*` release of `freeKC/Immuch360`, built by `.github/workflows/immuch360-libmpv.yml` and pinned by the SHA-256 of that release's `SHA256SUMS.txt` | in that release's `BUILDINFO-x86_64.txt` and `BUILDINFO-aarch64.txt` |
+Each release has one archive per architecture, `mpv-dev-x86_64-*.7z` and `mpv-dev-aarch64-*.7z`, laid out like
+media-kit's: `libmpv-2.dll`, `libmpv.dll.a`, `include/mpv`, the licence texts of every library in `licenses/` (one
+folder per library) and `BUILDINFO.txt`, which names every library with its commit or the SHA-256 of its archive.
 
 ### Licence
 
@@ -36,40 +17,33 @@ per library) and its `BUILDINFO.txt` go into `licenses/libmpv/` as well.
   Lesser General Public License version 2.1 or later (mpv's `Copyright` file).
 - **FFmpeg** is configured with `--disable-gpl --disable-nonfree --enable-version3`. Its code is LGPL version 2.1 or
   later; `--enable-version3` makes FFmpeg as built "LGPL version 3 or later", the version of the LGPL that can be
-  combined with OpenSSL 3 (Apache-2.0), linked into the same file for HTTPS. media_kit's own archives are configured the
-  same way.
+  combined with OpenSSL 3 (Apache-2.0), linked into the same file for HTTPS. media-kit's own archives are configured
+  the same way.
 - **The other libraries** linked into the DLL (below) are under the LGPL 2.1 or later or under permissive licences,
   all of which can be combined under version 3 of the LGPL.
 
 So `libmpv-2.dll` is distributed under the GNU Lesser General Public License version 3 or later
-(https://www.gnu.org/licenses/lgpl-3.0.html, which adds to the GPL version 3,
-https://www.gnu.org/licenses/gpl-3.0.html), each part keeping its own licence and copyright. Immuch360 uses the library only through mpv's C API, loaded at run time
-(`media_kit` opens `libmpv-2.dll` by name), which the LGPL allows for a program under any licence.
+(https://www.gnu.org/licenses/lgpl-3.0.html, which adds to the GPL version 3, https://www.gnu.org/licenses/gpl-3.0.html),
+each part keeping its own licence and copyright. A program that uses the library only through mpv's C API, loading
+`libmpv-2.dll` at run time as `media_kit` does, may be under any licence, as the LGPL allows.
 
 ### Your rights
 
-- **Use another build of the library.** In the ZIP build of the app, `libmpv-2.dll` can be replaced by your own build of
-  mpv's library (client API 2), for example one made from the sources below with your changes; the app loads
-  whichever `libmpv-2.dll` sits next to `immuch360.exe`.
-- **Get the corresponding source.**
-  - Build of the fork (switch on): each `libmpv-windows-*` release carries `<tag>-sources.tar.xz`, the
-    sources of every library built for the DLL at the commits listed in `BUILDINFO-<arch>.txt`, together with the
-    build recipe at its commit and the two files of `.github/desktop/libmpv/` that set the options of FFmpeg and mpv.
-    Every library is built at the commit pinned in `.github/desktop/libmpv/sources.lock`, so running the workflow
-    again, or the same commands on a Linux machine with the container it names, rebuilds the DLL from the same code.
-  - media-kit's 2024 archive (switch off): mpv at commit `0f78584518` (https://github.com/mpv-player/mpv) and FFmpeg at
-    commit `8d940a07d` (https://github.com/FFmpeg/FFmpeg), built by the recipe `media-kit/libmpv-win32-video-cmake` at
-    commit `8ddbe54` (tag `20241021`); that recipe took the other libraries from their repositories as they were on
-    2024-10-21 and media-kit published no list of their commits. The fork keeps no copy of those sources, one of the
-    reasons the fork's own build is meant to replace this archive before a public release: `windows_bundle.py`
-    refuses a ZIP for a release that carries it, unless the owner decides otherwise (`--accept-2024-libmpv`).
+- **Use another build of the library.** An app that ships `libmpv-2.dll` as a separate file lets its users replace it
+  with their own build of mpv's library (client API 2), for example one made from the sources below with their
+  changes.
+- **Get the corresponding source.** Each release carries `<tag>-sources.tar.xz`: the sources of every library built
+  for the DLL at the commits listed in `BUILDINFO-<arch>.txt`, the build recipe at its commit and the files of
+  `windows/` that set the options of FFmpeg and mpv. Every library is built at the commit pinned in
+  `windows/sources.lock`, so running the workflow again, or the same commands on a Linux machine with the container it
+  names, rebuilds the DLL from the same code.
 
 ### Libraries built into the DLL
 
-The fork's build recipe compiles these projects for the DLL (the list is that of the Windows x64 build; arm64 has the
-same without the NVIDIA headers). The linker keeps only the code that mpv and the enabled FFmpeg components reach, so
-some of them (marked "build only") contribute nothing to the file; they are listed because their sources are part of the
-published source archive. The full licence texts are in the `licenses/` folder of each archive of the fork's build.
+The recipe compiles these projects for the DLL (the list is that of the x64 build; arm64 has the same without the
+NVIDIA headers). The linker keeps only the code that mpv and the enabled FFmpeg components reach, so some of them
+(marked "build only") contribute nothing to the file; they are listed because their sources are part of the published
+source archive.
 
 | Project | Licence (SPDX) | Used for |
 |---|---|---|
@@ -126,47 +100,62 @@ published source archive. The full licence texts are in the `licenses/` folder o
 | mingw-w64 runtime and winpthreads | ZPL-2.1, MIT, BSD-3-Clause and public domain parts | C runtime start-up, threads |
 | LLVM libc++, libunwind, compiler-rt | Apache-2.0 WITH LLVM-exception | C++ runtime |
 
-media-kit's 2024 archive comes from the same recipe family with nearly the same options: FFmpeg with the same licence
-switches and fewer filters, mpv with its Vulkan output and with libarchive (BSD-2-Clause, reading videos inside
-archives), which the fork's build leaves out.
-
 ### Credits some of these licences ask for
 
 - Portions of this software are copyright © The FreeType Project (https://freetype.org). All rights reserved.
 - This software is based in part on the work of the Independent JPEG Group.
 
-These two sentences go into the documentation of the app (its about box or the README of the package) when the
-Windows build is published.
+An app that ships the DLL carries these two sentences in its documentation, its about box for example.
 
-## Dart code compiled into the app
+## libmpv for macOS (releases `libmpv-macos-*`)
 
-`media_kit` (MIT, `mobile/packages/media_kit/LICENSE`) carries a copy of `package:ffi` 1.2.1 in its `lib/ffi/`, compiled
-into `data/app.so` with the rest of the app's Dart code. Its licence, also in `mobile/packages/media_kit/lib/ffi/LICENSE`:
+Each release has the xcframeworks of libmpv and of the libraries it loads, arm64 and x86_64 in each, for macOS 12 and
+later: all of them in one `.tar.gz`, and each in its own zip for Swift Package Manager. `BUILDINFO-macos.txt` names
+every library with its version and the SHA-256 of its source archive.
 
-    Copyright 2019, the Dart project authors.
+### Licence
 
-    Redistribution and use in source and binary forms, with or without
-    modification, are permitted provided that the following conditions are
-    met:
+- **mpv** is built with `-Dgpl=false`: GNU LGPL version 2.1 or later.
+- **FFmpeg** (`Avcodec`, `Avfilter`, `Avformat`, `Avutil`, `Swresample`, `Swscale`) is configured with
+  `--enable-version3` and without `--enable-gpl` or `--enable-nonfree`: LGPL version 3 or later as built, the version
+  of the LGPL that can be combined with Mbed TLS (Apache-2.0), which FFmpeg uses for HTTPS.
+- **The other libraries** (below) are under the LGPL 2.1 or later or under permissive licences, all of which can be
+  combined under version 3 of the LGPL.
 
-        * Redistributions of source code must retain the above copyright
-          notice, this list of conditions and the following disclaimer.
-        * Redistributions in binary form must reproduce the above
-          copyright notice, this list of conditions and the following
-          disclaimer in the documentation and/or other materials provided
-          with the distribution.
-        * Neither the name of Google LLC nor the names of its
-          contributors may be used to endorse or promote products derived
-          from this software without specific prior written permission.
+So these frameworks are distributed under the GNU Lesser General Public License version 3 or later, each part keeping
+its own licence and copyright. A program that uses them only through mpv's C API, opening `Mpv.framework/Mpv` at run
+time as `media_kit` does, may be under any licence.
 
-    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-    A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-    OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+### Your rights
+
+- **Use another build of the libraries.** The frameworks are separate files inside an app. They can be replaced by
+  another build of the same libraries with the same framework names; macOS then asks for the app to be signed again
+  (`codesign --force --deep --sign - <the app>`).
+- **Get the corresponding source.** Each release carries `<tag>-sources.tar.xz`: the recipe at its commit with the
+  files of `macos/` applied, and every source archive it builds from, each checked by the SHA-256 that
+  `macos/packages.lock.nix` pins. Running the workflow again, or the recipe's `make` on a Mac with Nix and the Xcode
+  named in `BUILDINFO-macos.txt`, rebuilds the frameworks from the same code. The licence texts of each library, as its
+  sources hold them, are in `<tag>-licenses.tar.gz`.
+
+### Libraries in the frameworks
+
+| Framework | Project | Licence (SPDX) | Used for |
+|---|---|---|---|
+| `Mpv` | mpv | LGPL-2.1-or-later (built with `-Dgpl=false`) | the player |
+| `Avcodec`, `Avfilter`, `Avformat`, `Avutil`, `Swresample`, `Swscale` | FFmpeg | LGPL-2.1-or-later code, LGPL-3.0-or-later as configured | demuxing, decoding (VideoToolbox on the GPU), network protocols, filters |
+| `Placebo` | libplacebo | LGPL-2.1-or-later | mpv's video renderer |
+| `Fribidi` | GNU FriBidi | LGPL-2.1-or-later | subtitle text direction |
+| `Uchardet` | uchardet | MPL-1.1 OR GPL-2.0-or-later OR LGPL-2.1-or-later | subtitle encoding detection |
+| `Ass` | libass | ISC | subtitles |
+| `Freetype` | FreeType | FTL OR GPL-2.0-or-later (used under the FTL) | fonts of subtitles |
+| `Harfbuzz` | HarfBuzz | MIT | text shaping of subtitles |
+| `Png16` | libpng | libpng-2.0 | PNG glyphs of fonts |
+| `Dav1d` | dav1d | BSD-2-Clause | AV1 decoding |
+| `Xml2` | libxml2 | MIT | DASH manifests |
+| `Mbedtls`, `Mbedx509`, `Mbedcrypto` | Mbed TLS | Apache-2.0 | HTTPS and TLS |
+| none (built in) | fast_float | Apache-2.0 OR BSL-1.0 OR MIT | number parsing in libplacebo (header only) |
+| none (built in) | Vulkan-Headers | Apache-2.0 OR MIT | headers of libplacebo's Vulkan stubs (Vulkan is off) |
+
+### Credits some of these licences ask for
+
+- Portions of this software are copyright © The FreeType Project (https://freetype.org). All rights reserved.

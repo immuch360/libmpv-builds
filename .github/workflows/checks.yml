@@ -1,0 +1,26 @@
+name: Checks
+
+# The checks of the recipe that need no build (tests/test_recipe.py): the pins, the overlay, the release rules and the
+# y4m check, in a few seconds. The build itself is .github/workflows/build.yml.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Recipe tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Tests
+        run: python3 -m unittest discover -s tests -v
