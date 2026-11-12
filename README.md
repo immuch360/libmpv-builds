@@ -4,6 +4,7 @@
 [![Checks](https://github.com/immuch360/libmpv-builds/actions/workflows/checks.yml/badge.svg)](https://github.com/immuch360/libmpv-builds/actions/workflows/checks.yml)
 [![Windows release](https://img.shields.io/github/v/release/immuch360/libmpv-builds?filter=libmpv-windows-*&label=windows&display_name=tag)](https://github.com/immuch360/libmpv-builds/releases)
 [![macOS release](https://img.shields.io/github/v/release/immuch360/libmpv-builds?filter=libmpv-macos-*&label=macos&display_name=tag)](https://github.com/immuch360/libmpv-builds/releases)
+[![Android release](https://img.shields.io/github/v/release/immuch360/libmpv-builds?filter=libmpv-android-*&label=android&display_name=tag)](android/README.md)
 [![Recipe licence: MIT](https://img.shields.io/badge/recipe-MIT-blue)](LICENSE)
 [![Archives: LGPL-3.0-or-later](https://img.shields.io/badge/archives-LGPL--3.0--or--later-blue)](NOTICES.md)
 
@@ -11,6 +12,10 @@ Reproducible builds of libmpv, mpv's player library with FFmpeg, for Windows x64
 library is built from a pinned commit or a pinned archive, and every release carries its SHA-256 sums, the licence
 texts and the corresponding source. The archives drop into Flutter apps that play video with
 [media_kit](https://github.com/media-kit/media-kit).
+
+For Android, the `libmpv-android-*` releases re-host media-kit's own libmpv (libmpv-android-video-build `v1.1.7`,
+the archives `media_kit_libs_android_video` downloads) with its corresponding source, fetched at the commits it was
+built from, and a script that rebuilds it: [android/README.md](android/README.md).
 
 These builds play the videos of [Immuch360](https://github.com/freeKC/Immuch360) Desktop
 ([immuch360.com](https://immuch360.com)), where the recipe was first written.
@@ -50,7 +55,11 @@ A macOS release is tagged `libmpv-macos-<date>-<run number>`:
 | `<tag>-sources.tar.xz`, `<tag>-licenses.tar.gz` | the corresponding source, and the licence texts of every library |
 | `SHA256SUMS.txt` | the SHA-256 of every file of the release |
 
-The Windows release is marked as the latest release of the repository; the macOS one never is.
+An Android release is tagged `libmpv-android-<date>-<number>`: media-kit's four `default-<abi>.jar` and their debug
+symbols, unchanged, with `<tag>-sources.tar.xz`, the mpv and FFmpeg sources alone, `<tag>-licenses.tar.gz`,
+`BUILDINFO-android.txt` and `SHA256SUMS.txt` ([android/README.md](android/README.md)).
+
+The Windows release is marked as the latest release of the repository; the macOS and Android ones never are.
 
 Before a macOS release, the workflow checks the frameworks on the runner: no function looked up at run time that no
 library defines, and a y4m video read from a file and over HTTP with exact seeks, on each architecture the runner can
@@ -237,6 +246,9 @@ job stays under the 6 hour limit of hosted jobs.
   for media_kit, and [Predidit/libmpv-win32-video-cmake](https://github.com/Predidit/libmpv-win32-video-cmake), the
   fork that keeps it building.
 - [media-kit/libmpv-darwin-build](https://github.com/media-kit/libmpv-darwin-build), the macOS Nix recipe.
+- [media-kit/libmpv-android-video-build](https://github.com/media-kit/libmpv-android-video-build), the Android recipe
+  and the builds the Android releases re-host, and
+  [media-kit/media-kit-android-helper](https://github.com/media-kit/media-kit-android-helper).
 - [media-kit](https://github.com/media-kit/media-kit), the Flutter player these builds are made for.
 
 ## Licences
@@ -244,9 +256,9 @@ job stays under the 6 hour limit of hosted jobs.
 - **This repository** (the workflows, scripts, tests and recipe files): MIT, `LICENSE`. The files made from the macOS
   recipe keep its MIT notice. The two Windows CMake files are made from shinchiro's recipe, which publishes no licence,
   so the MIT licence covers the changes made here only. `LICENSE` lists them.
-- **The archives**: libmpv with FFmpeg as built is under the GNU LGPL version 3 or later as a whole, each library
-  keeping its own licence (OpenSSL and Mbed TLS under Apache-2.0, for example). `NOTICES.md` lists every library, its
-  licence and your rights; the licence texts are in `licenses/` and in each archive.
+- **The archives**: libmpv with FFmpeg as built is under the GNU LGPL version 3 or later as a whole, on Android too,
+  each library keeping its own licence (OpenSSL and Mbed TLS under Apache-2.0, for example). `NOTICES.md` lists every
+  library, its licence and your rights; the licence texts are in `licenses/` and in each archive.
 
 ## Changes
 

@@ -9,7 +9,9 @@ a branch has on the day of the run. macOS: macos/packages.lock.nix at the FFmpeg
 every archive pinned by its SHA-256, the overlay copying every file the recipe reads and refusing a recipe it was not
 made for, and FFmpeg's options (the y4m demuxer and the rawvideo decoder, nothing GPL or nonfree). The workflow: the
 inputs and their fallbacks agree, and only a run by hand that asks for it publishes. The y4m check: its fixtures are
-y4m as the AV2 decoder of Immuch360 writes them, and it fails the reports it must fail.
+y4m as the AV2 decoder of Immuch360 writes them, and it fails the reports it must fail. Android: android/sources.lock
+pins every tree of media-kit's default flavour to a commit and nothing GPL, the README lists the files it re-hosts, and
+android/fetch_sources.sh fetches the locked commits, refuses a moved tag and makes the same archives twice.
 """
 
 from __future__ import annotations
@@ -35,6 +37,8 @@ MACOS_LOCK = MACOS / 'packages.lock.nix'
 OVERLAY = MACOS / 'apply_overlay.sh'
 FFMPEG_MESON = MACOS / 'mk-pkg-ffmpeg-meson.build'
 CHECK_Y4M = MACOS / 'check_y4m.py'
+ANDROID = ROOT / 'android'
+ANDROID_LOCK = ANDROID / 'sources.lock'
 
 HAVE_BASH_AND_GIT = shutil.which('bash') is not None and shutil.which('git') is not None
 
@@ -431,6 +435,136 @@ class Y4mCheck(unittest.TestCase):
         dropped = self.evaluate({**good_report(10), 'decoder-frame-drop-count': '2'}, 10)
         self.assertEqual(dropped.returncode, 1)
         self.assertIn('FAILED: played to the last frame, none dropped', dropped.stdout)
+
+
+def android_lock() -> list[list[str]]:
+    return [line.split() for line in ANDROID_LOCK.read_text(encoding='utf-8').splitlines()
+            if line.strip() and not line.startswith('#')]
+
+
+class AndroidLock(unittest.TestCase):
+    def test_one_commit_per_tree_each_named_once(self):
+        for fields in android_lock():
+            self.assertEqual(len(fields), 4, fields)
+            self.assertRegex(fields[0], r'^[a-z0-9_.+-]+$')
+            self.assertRegex(fields[1], r'^https://[^ ]+\.git$')
+            self.assertRegex(fields[3], r'^[0-9a-f]{40}$')
+        names = [fields[0] for fields in android_lock()]
+        self.assertEqual(len(set(names)), len(names))
+
+    def test_the_trees_of_the_default_flavour_and_nothing_gpl(self):
+        names = {fields[0] for fields in android_lock()}
+        self.assertEqual(names, {'recipe', 'mpv', 'ffmpeg', 'mbedtls', 'dav1d', 'libxml2', 'freetype', 'fribidi',
+                                 'harfbuzz', 'libass', 'media-kit-android-helper'})
+        for gpl in ('libx264', 'x264', 'x265', 'libvpx', 'fftools_ffi'):
+            self.assertNotIn(gpl, names)
+
+    def test_the_recipe_at_v1_1_7_and_mpv_and_ffmpeg_at_what_the_library_says(self):
+        lock = {fields[0]: fields for fields in android_lock()}
+        self.assertEqual(lock['recipe'][2:], ['v1.1.7', 'fe8c3ac1a91c09aa6fb1deccbc833f1bafa54768'])
+        self.assertTrue(lock['mpv'][3].startswith('78d43740f5'))
+        self.assertEqual(lock['ffmpeg'][2], 'n6.0')
+
+    def test_the_readme_lists_every_file_it_re_hosts_with_its_sha256(self):
+        readme = (ANDROID / 'README.md').read_text(encoding='utf-8')
+        for name, digest in (
+                ('default-arm64-v8a.jar', '4363dfa5d3d415b91c1f16f6fb90c3fe59a77dfd3f9b824d2b24b492d6b09df9'),
+                ('default-armeabi-v7a.jar', '8ead114fc5a43348d89dc0eb8f41823e549b15115c29f73ee26973f973620995'),
+                ('default-x86.jar', '94c13cb6188b774710e5e487afff6e500c4af504df74b2494d7b12cf9be8a66a'),
+                ('default-x86_64.jar', '90268cd15f0766e07fb8e427388c621161177c9eb343c544f327bd63232bb236'),
+                ('debug-symbols-default.zip', '4b2e5a007112897015880a498cafb442aef67b482f588c6da73bc80c6dca24df')):
+            self.assertRegex(readme, rf'`{re.escape(name)}` \| [0-9,]+ \| `{digest}`')
+
+    @unittest.skipUnless(HAVE_BASH_AND_GIT and os.name != 'nt', 'the scripts run on Linux, with bash and git')
+    def test_the_scripts_parse(self):
+        for script in ('fetch_sources.sh', 'build.sh'):
+            run = subprocess.run(['bash', '-n', str(ANDROID / script)], capture_output=True, text=True)
+            self.assertEqual(run.returncode, 0, run.stderr)
+
+
+@unittest.skipUnless(HAVE_BASH_AND_GIT and os.name != 'nt' and shutil.which('xz') is not None,
+                     'fetch_sources.sh runs on Linux, with bash, git, GNU tar and xz')
+class AndroidFetchSources(unittest.TestCase):
+    def git(self, cwd: Path, *args: str) -> str:
+        run = subprocess.run(['git', '-c', 'user.name=test', '-c', 'user.email=test@example.invalid',
+                              '-c', 'init.defaultBranch=main', '-c', 'commit.gpgsign=false', *args],
+                             cwd=cwd, capture_output=True, text=True)
+        if run.returncode != 0:
+            raise AssertionError(f'git {" ".join(args)}: {run.stderr}')
+        return run.stdout.strip()
+
+    def setUp(self):
+        self.root = Path(tempfile.mkdtemp(prefix='libmpv_android_'))
+        # The scripts in a folder of their own, with a lock of three test repositories
+        self.android = self.root / 'android'
+        self.android.mkdir()
+        for name in ('fetch_sources.sh', 'build.sh', 'README.md'):
+            shutil.copy(ANDROID / name, self.android / name)
+        self.commits = {}
+        lines = []
+        for name, ref in (('recipe', 'v1.1.7'), ('mpv', None), ('ffmpeg', 'n6.0')):
+            origin = self.root / 'origins' / name
+            origin.mkdir(parents=True)
+            self.git(origin, 'init', '-q')
+            (origin / 'LICENSE').write_text(f'licence of {name}\n')
+            (origin / 'code.c').write_text(f'/* {name} */\n')
+            self.git(origin, 'add', '-A')
+            self.git(origin, 'commit', '-q', '-m', name)
+            commit = self.git(origin, 'rev-parse', 'HEAD')
+            if ref:
+                self.git(origin, 'tag', '-a', ref, '-m', ref)
+            else:
+                self.git(origin, 'config', 'uploadpack.allowAnySHA1InWant', 'true')
+            self.commits[name] = commit
+            lines.append(f'{name} file://{origin} {ref or commit} {commit}')
+        (self.android / 'sources.lock').write_text('# test lock\n' + '\n'.join(lines) + '\n')
+
+    def tearDown(self):
+        shutil.rmtree(self.root)
+
+    def fetch(self, *args: str) -> subprocess.CompletedProcess:
+        return subprocess.run(['bash', str(self.android / 'fetch_sources.sh'), *args], capture_output=True, text=True)
+
+    def test_checks_every_tree_out_at_its_commit(self):
+        run = self.fetch('checkout', str(self.root / 'trees'))
+        self.assertEqual(run.returncode, 0, run.stderr)
+        for name, commit in self.commits.items():
+            self.assertEqual(self.git(self.root / 'trees' / name, 'rev-parse', 'HEAD'), commit)
+
+    def test_refuses_a_tag_that_moved(self):
+        origin = self.root / 'origins' / 'ffmpeg'
+        (origin / 'code.c').write_text('/* changed */\n')
+        self.git(origin, 'commit', '-q', '-am', 'changed')
+        self.git(origin, 'tag', '-f', '-a', 'n6.0', '-m', 'moved')
+        run = self.fetch('checkout', str(self.root / 'trees'))
+        self.assertNotEqual(run.returncode, 0)
+        self.assertIn('ffmpeg: n6.0 is now', run.stderr)
+
+    def test_refuses_a_tag_that_is_not_a_libmpv_android_tag(self):
+        run = self.fetch('archive', str(self.root / 'out'), 'libmpv-windows-20261112-1')
+        self.assertEqual(run.returncode, 2)
+
+    def test_makes_the_same_archives_twice_with_every_tree_and_its_licence(self):
+        tag = 'libmpv-android-20261112-1'
+        sums = []
+        for out in ('out1', 'out2'):
+            run = self.fetch('archive', str(self.root / out), tag)
+            self.assertEqual(run.returncode, 0, run.stderr)
+            files = sorted(p.name for p in (self.root / out).iterdir() if p.is_file())
+            mpv = f'mpv-{self.commits["mpv"][:10]}-source.tar.xz'
+            self.assertEqual(files, sorted([f'{tag}-sources.tar.xz', f'{tag}-licenses.tar.gz', mpv,
+                                            'ffmpeg-n6.0-source.tar.xz']))
+            sums.append({name: hashlib.sha256((self.root / out / name).read_bytes()).hexdigest() for name in files})
+        self.assertEqual(sums[0], sums[1])
+        listing = subprocess.run(['tar', '-tJf', str(self.root / 'out1' / f'{tag}-sources.tar.xz')],
+                                 capture_output=True, text=True, check=True).stdout.split()
+        for path in ('recipe/LICENSE', 'deps/mpv/code.c', 'deps/ffmpeg/code.c', 'android/sources.lock',
+                     'android/build.sh', 'SOURCES.txt'):
+            self.assertIn(f'{tag}-sources/{path}', listing)
+        licences = subprocess.run(['tar', '-tzf', str(self.root / 'out1' / f'{tag}-licenses.tar.gz')],
+                                  capture_output=True, text=True, check=True).stdout.split()
+        for name in ('recipe', 'mpv', 'ffmpeg'):
+            self.assertIn(f'{tag}-licenses/{name}/LICENSE', licences)
 
 
 if __name__ == '__main__':

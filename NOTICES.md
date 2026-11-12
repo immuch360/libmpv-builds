@@ -159,3 +159,56 @@ time as `media_kit` does, may be under any licence.
 ### Credits some of these licences ask for
 
 - Portions of this software are copyright © The FreeType Project (https://freetype.org). All rights reserved.
+
+## libmpv for Android (releases `libmpv-android-*`)
+
+Each release re-hosts, unchanged, the `default` flavour of media-kit/libmpv-android-video-build release `v1.1.7`: one
+`default-<abi>.jar` per ABI (arm64-v8a, armeabi-v7a, x86, x86_64), each a zip of `lib/<abi>/libmpv.so` and
+`lib/<abi>/libmediakitandroidhelper.so`, and `debug-symbols-default.zip`. `android/README.md` gives their SHA-256,
+the commit of every library and what the files say about their build; `BUILDINFO-android.txt` on the release the
+same.
+
+### Licence
+
+- **mpv** is built with `-Dgpl=false`: GNU LGPL version 2.1 or later.
+- **FFmpeg** 6.0 is configured with `--disable-gpl --disable-nonfree --enable-version3`, and each of its libraries
+  says `license: LGPL version 3 or later`: LGPL version 3 or later as built, the version that can be combined with
+  Mbed TLS (Apache-2.0), which FFmpeg uses for HTTPS.
+- **The other libraries** (below) are under the LGPL 2.1 or later or under permissive licences.
+
+So `libmpv.so` is distributed under the GNU Lesser General Public License version 3 or later, each part keeping its own
+licence and copyright. `libmediakitandroidhelper.so` is under the MIT licence of media-kit-android-helper. A program
+that loads `libmpv.so` at run time and uses only mpv's C API, as `media_kit` does, may be under any licence.
+
+### Your rights
+
+- **Use another build of the library.** `libmpv.so` is a separate file in an app's package. It can be replaced by
+  another build of mpv's library with the same name and ABI, for example one made from the source below with your
+  changes, and the app's package rebuilt with it.
+- **Get the corresponding source.** Each release carries `<tag>-sources.tar.xz`: the recipe at `v1.1.7` with its
+  patches, and every library it builds into `libmpv.so` and the helper at the commit of `android/sources.lock`, and
+  `android/build.sh`, which rebuilds the jars from that archive. mpv and FFmpeg are also attached alone. The licence
+  texts of each library, as its source holds them, are in `<tag>-licenses.tar.gz`. The written offer of
+  `android/README.md` covers the same source.
+
+### Libraries in `libmpv.so`
+
+| Project | Licence (SPDX) | Used for |
+|---|---|---|
+| mpv | LGPL-2.1-or-later (built with `-Dgpl=false`) | the player |
+| FFmpeg | LGPL-2.1-or-later code, LGPL-3.0-or-later as configured | demuxing, decoding (MediaCodec on the device's hardware), network protocols, filters |
+| FriBidi | LGPL-2.1-or-later | subtitle text direction |
+| libass | ISC | subtitles |
+| FreeType | FTL OR GPL-2.0-or-later (used under the FTL) | fonts of subtitles |
+| HarfBuzz | MIT | text shaping of subtitles |
+| dav1d | BSD-2-Clause | AV1 decoding |
+| libxml2 | MIT | DASH manifests |
+| Mbed TLS | Apache-2.0 | HTTPS and TLS |
+| zlib (the NDK's) | Zlib | compression |
+
+The libraries are linked statically into `libmpv.so`, which needs only Android's own libraries. The recipe's
+`encoders-gpl` flavour (GPL, with libx264) is not built: nothing GPL is in these files.
+
+### Credits some of these licences ask for
+
+- Portions of this software are copyright © The FreeType Project (https://freetype.org). All rights reserved.

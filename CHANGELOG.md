@@ -2,7 +2,19 @@
 
 The versions of this file are those of the recipe. The archives have releases of their own, tagged
 `libmpv-windows-<date>-<run number>` and `libmpv-macos-<date>-<run number>`, whose `BUILDINFO` files name the commit
-of the recipe that built them.
+of the recipe that built them, and `libmpv-android-<date>-<number>` (re-hosted, `android/README.md`).
+
+## 1.1.0 (2026-11-12)
+
+- Android: `android/` and the `libmpv-android-*` releases. They re-host the four `default-<abi>.jar` and the debug
+  symbols of media-kit/libmpv-android-video-build `v1.1.7` (commit `fe8c3ac1`), unchanged and checked by their
+  SHA-256, with their corresponding source: `android/sources.lock` pins the recipe, mpv `78d43740`, FFmpeg `n6.0`,
+  Mbed TLS, dav1d, libxml2, FreeType, FriBidi, HarfBuzz, libass and media-kit-android-helper to commits, and
+  `android/fetch_sources.sh` archives them. `android/build.sh` rebuilds the jars from that archive (not run by the
+  workflows). Checked in the files: FFmpeg `--disable-gpl --disable-nonfree --enable-version3`, licence strings
+  `LGPL version 3 or later`, mpv `-Dgpl=false`, no x264 or x265. First release: `libmpv-android-20261112-1`.
+- `tests/test_recipe.py`: the Android lock and scripts.
+- `NOTICES.md`: libmpv for Android.
 
 ## 1.0.0 (2026-11-10)
 

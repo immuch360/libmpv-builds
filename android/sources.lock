@@ -1,0 +1,16 @@
+# The corresponding source of the libmpv of media-kit/libmpv-android-video-build release v1.1.7, flavour "default".
+# One line per tree: name, repository, the ref the recipe clones, the commit that ref resolved to on 12 November 2026.
+# "recipe" is that repository at the tag of the release; the other names are the folders of buildscripts/deps that
+# its build reads for the default flavour (include/depinfo.sh, dep_ffmpeg and dep_mpv without ENCODERS_GPL).
+# fetch_sources.sh fetches each commit and stops when a ref no longer resolves to it.
+recipe https://github.com/media-kit/libmpv-android-video-build.git v1.1.7 fe8c3ac1a91c09aa6fb1deccbc833f1bafa54768
+mpv https://github.com/mpv-player/mpv.git 78d43740f52db817d98bcf24fb30a76ab6fa13ff 78d43740f52db817d98bcf24fb30a76ab6fa13ff
+ffmpeg https://github.com/FFmpeg/FFmpeg.git n6.0 ea3d24bbe3c58b171e55fe2151fc7ffaca3ab3d2
+mbedtls https://github.com/Mbed-TLS/mbedtls.git v3.4.0 1873d3bfc2da771672bd8e7e8f41f57e0af77f33
+dav1d https://code.videolan.org/videolan/dav1d.git 1.2.0 676a864a11af2c0522e1f992e770589543894686
+libxml2 https://gitlab.gnome.org/GNOME/libxml2.git v2.10.3 f507d167f1755b7eaea09fb1a44d29aab828b6d1
+freetype https://gitlab.freedesktop.org/freetype/freetype.git VER-2-13-0 de8b92dd7ec634e9e2b25ef534c54a3537555c11
+fribidi https://github.com/fribidi/fribidi.git v1.0.12 6428d8469e536bcbb6e12c7b79ba6659371c435a
+harfbuzz https://github.com/harfbuzz/harfbuzz.git 7.2.0 a321c4fee56b15247c10f9aa3db7e7ccb3b8173b
+libass https://github.com/libass/libass.git 0.17.1 e8ad72accd3a84268275a9385beb701c9284e5b3
+media-kit-android-helper https://github.com/media-kit/media-kit-android-helper.git main 42054e5d479f39ccbb0ae604862e2bcaf59b74c2
