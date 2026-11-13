@@ -4,7 +4,7 @@ The versions of this file are those of the recipe. The archives have releases of
 `libmpv-windows-<date>-<run number>` and `libmpv-macos-<date>-<run number>`, whose `BUILDINFO` files name the commit
 of the recipe that built them, and `libmpv-android-<date>-<number>` (re-hosted, `android/README.md`).
 
-## Unreleased
+## 1.2.0 (2026-11-13)
 
 - Windows and macOS: FFmpeg's Dolby TrueHD and MLP decoders and the MLP parser, and on Windows the PGS subtitle
   decoder (macOS had it). The `truehd` demuxer was already in, so mpv opened a TrueHD track and played it silent
