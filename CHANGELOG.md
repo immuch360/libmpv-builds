@@ -4,6 +4,18 @@ The versions of this file are those of the recipe. The archives have releases of
 `libmpv-windows-<date>-<run number>` and `libmpv-macos-<date>-<run number>`, whose `BUILDINFO` files name the commit
 of the recipe that built them, and `libmpv-android-<date>-<number>` (re-hosted, `android/README.md`).
 
+## Unreleased
+
+- Windows and macOS: FFmpeg's Dolby TrueHD and MLP decoders and the MLP parser, and on Windows the PGS subtitle
+  decoder (macOS had it). The `truehd` demuxer was already in, so mpv opened a TrueHD track and played it silent
+  ("ad: Failed to initialize a decoder for codec 'truehd'"): the default track of most UHD Blu-ray remuxes. PGS
+  subtitles of Blu-ray discs showed nothing ("Could not find subtitle decoder for format 'hdmv_pgs_subtitle'"). All
+  three are LGPL parts of FFmpeg; the archives stay LGPL-3.0-or-later. Found by the Plex validation of Immuch360
+  Desktop build 26 (13 November 2026).
+- Android: unchanged. The re-hosted media-kit v1.1.7 build has no TrueHD decoder; adding one means building the jars
+  from `android/build.sh` with a changed flavour, not a re-host.
+- `tests/test_recipe.py`: the decoders of the Windows configuration, and the TrueHD lines of the macOS one.
+
 ## 1.1.0 (2026-11-12)
 
 - Android: `android/` and the `libmpv-android-*` releases. They re-host the four `default-<abi>.jar` and the debug

@@ -102,12 +102,15 @@ audio_default_options = [
     '--enable-decoder=pcm*',
     '--enable-decoder=dsd*',
     '--enable-decoder=dca', # required by dts
+    '--enable-decoder=truehd', # Immuch360: Dolby TrueHD, the default track of most UHD Blu-ray remuxes (LGPL)
+    '--enable-decoder=mlp', # Immuch360: MLP, the decoder TrueHD shares (LGPL)
 
     # parsers   
     '--enable-parser=aac*',
     '--enable-parser=ac3',
     '--enable-parser=cook',
     '--enable-parser=dca',
+    '--enable-parser=mlp', # Immuch360: the parser of TrueHD and MLP streams
     '--enable-parser=flac',
     '--enable-parser=gsm',
     '--enable-parser=mpegaudio',

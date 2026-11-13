@@ -260,6 +260,26 @@ class MacosPins(unittest.TestCase):
             self.assertIn(f'$here/{name}', script, f'{name} is not copied over the recipe')
 
 
+class WindowsFfmpeg(unittest.TestCase):
+    def options(self) -> list[str]:
+        cmake = (WINDOWS / 'ffmpeg.cmake').read_text(encoding='utf-8')
+        return re.findall(r'^\s+(--[a-z0-9-]+(?:=[^\s]+)?)\s*$', cmake, re.M)
+
+    def test_the_audio_and_subtitles_of_uhd_blu_ray_remuxes_are_decoded(self):
+        options = self.options()
+        self.assertIn('--disable-decoders', options, 'the list below is an allow list')
+        for option in ('--enable-decoder=truehd', '--enable-decoder=mlp', '--enable-parser=mlp',
+                       '--enable-demuxer=truehd', '--enable-decoder=pgssub'):
+            self.assertIn(option, options)
+
+    def test_nothing_gpl_or_nonfree(self):
+        options = self.options()
+        self.assertIn('--disable-gpl', options)
+        self.assertIn('--disable-nonfree', options)
+        self.assertNotIn('--enable-gpl', options)
+        self.assertNotIn('--enable-nonfree', options)
+
+
 class MacosFfmpeg(unittest.TestCase):
     def test_the_default_video_flavor_reads_a_y4m_over_http(self):
         meson = meson_text()
@@ -287,7 +307,15 @@ class MacosFfmpeg(unittest.TestCase):
         self.assertEqual(hashlib.sha256(recipe_meson(copy).encode()).hexdigest(), pin[1])
         added = [m[1] for m in (re.match(r"^\s+'([^']+)',", line) for line in copy.split('\n') if 'Immuch360' in line)
                  if m]
-        self.assertEqual(sorted(added), ['--enable-decoder=rawvideo', '--enable-demuxer=yuv4mpegpipe'])
+        self.assertEqual(sorted(added), ['--enable-decoder=mlp', '--enable-decoder=rawvideo',
+                                         '--enable-decoder=truehd', '--enable-demuxer=yuv4mpegpipe',
+                                         '--enable-parser=mlp'])
+
+    def test_the_audio_of_uhd_blu_ray_remuxes_is_decoded(self):
+        audio = meson_list(meson_text(), 'audio_default_options')
+        for option in ('--enable-decoder=truehd', '--enable-decoder=mlp', '--enable-parser=mlp',
+                       '--enable-demuxer=truehd'):
+            self.assertIn(option, audio)
 
 
 @unittest.skipUnless(shutil.which('bash') and os.name != 'nt', 'apply_overlay.sh runs on Linux and macOS')

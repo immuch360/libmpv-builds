@@ -8,7 +8,11 @@
 #   - no source patch: the fork's HLS patch serves its own streaming app, not a photo library;
 #   - the filters the 360 and raw camera paths ask mpv for through lavfi-complex (hstack, vstack, crop, pad, the null
 #     and format filters and the converters libavfilter inserts between them), the ProRes, VC-1 and raw video
-#     decoders, the yuv4mpegpipe demuxer for lossless reference clips, and the AV1, VP9 and VC-1 parsers.
+#     decoders, the yuv4mpegpipe demuxer for lossless reference clips, and the AV1, VP9 and VC-1 parsers;
+#   - the Dolby TrueHD and MLP decoders and their parser (the default audio track of most UHD Blu-ray remuxes; the
+#     truehd demuxer was in, so mpv opened the track and failed: "ad: Failed to initialize a decoder for codec
+#     'truehd'"), and the PGS subtitle decoder of Blu-ray discs ("Could not find subtitle decoder for format
+#     'hdmv_pgs_subtitle'"). All three are LGPL parts of FFmpeg, as macOS already had pgssub.
 # --enable-version3 stays: OpenSSL 3 is Apache-2.0, compatible with version 3 of the LGPL, so FFmpeg as built here is
 # LGPL-3.0-or-later (NOTICES.md).
 if(NOT IMMUCH360_FFMPEG_REF)
@@ -181,11 +185,14 @@ ExternalProject_Add(ffmpeg
         --enable-decoder=pcm*
         --enable-decoder=dsd*
         --enable-decoder=dca
+        --enable-decoder=truehd
+        --enable-decoder=mlp
 
         --enable-decoder=ssa
         --enable-decoder=ass
         --enable-decoder=dvbsub
         --enable-decoder=dvdsub
+        --enable-decoder=pgssub
         --enable-decoder=srt
         --enable-decoder=stl
         --enable-decoder=subrip
@@ -285,6 +292,7 @@ ExternalProject_Add(ffmpeg
         --enable-parser=tak
         --enable-parser=vorbis
         --enable-parser=dca
+        --enable-parser=mlp
 
         --enable-filter=overlay
         --enable-filter=equalizer
