@@ -456,8 +456,8 @@ class Builder:
         folder = self.copy('zimg')
         env = self.env()
         env.update(CC=self.cc, CXX=self.cxx, CFLAGS=self.cflags, CXXFLAGS=self.cflags, LDFLAGS=self.ldflags)
-        if self.system == 'macos-universal':
-            env['STL_LIBS'] = '-lc++'
+        # The C++ library, and on Linux the maths library, which the static libzimg needs (its zimg.pc says so)
+        env['STL_LIBS'] = '-lc++' if self.system == 'macos-universal' else '-lstdc++ -lm'
         run(['sh', './autogen.sh'], cwd=folder, env=env)
         configure = ['./configure', f'--prefix={self.deps}', '--disable-shared', '--enable-static', '--with-pic',
                      f'--host={self.host}']
@@ -1135,7 +1135,7 @@ def parse_codecs(text: str) -> list:
 def parse_formats(text: str) -> list:
     names, started = [], False
     for line in text.splitlines():
-        if line.strip() == '--':
+        if line.strip() in ('--', '---'):
             started = True
             continue
         match = re.match(r'^ ([D ])([E ])([d ]) (\S+)', line)
@@ -1186,7 +1186,15 @@ def buildconf_options(text: str) -> list:
         start = next(index for index, line in enumerate(lines) if line.strip() == 'configuration:')
     except StopIteration:
         return []
-    return [line.strip() for line in lines[start + 1:] if line.strip().startswith('--')]
+    # Options with a value configure quoted keep their quotes there: --enable-encoder='aac,libsvtav1'
+    options = []
+    for line in lines[start + 1:]:
+        if line.strip().startswith('--'):
+            try:
+                options += shlex.split(line.strip())
+            except ValueError:
+                options.append(line.strip())
+    return options
 
 
 def buildconf_problems(lock: dict, system: str, options: list) -> list:

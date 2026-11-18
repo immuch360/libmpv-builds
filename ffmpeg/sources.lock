@@ -106,7 +106,7 @@
     "linux-x64": {
       "image": "ubuntu:22.04",
       "digest": "sha256:9abcaffc92a5279fff3a6a41635c0800ea33e528425fb389658806476e7defde",
-      "apt": ["https://snapshot.ubuntu.com/ubuntu/20261118T000000Z jammy main universe", "https://snapshot.ubuntu.com/ubuntu/20261118T000000Z jammy-updates main universe", "https://snapshot.ubuntu.com/ubuntu/20261118T000000Z jammy-security main universe"],
+      "apt": ["https://snapshot.ubuntu.com/ubuntu/20261118T000000Z jammy main universe", "https://snapshot.ubuntu.com/ubuntu/20261118T000000Z jammy-updates main universe"],
       "packages": ["autoconf", "automake", "bzip2", "ca-certificates", "cmake", "curl", "file", "g++", "gcc", "git", "libdrm-dev", "libtool", "make", "patchelf", "pkg-config", "python3", "python3-venv", "xz-utils", "zip"]
     },
     "macos-universal": {
@@ -124,7 +124,7 @@
       "--enable-ffprobe", "--enable-avdevice", "--disable-debug", "--enable-zlib", "--enable-libzimg",
       "--enable-libsvtav1", "--enable-libdav1d", "--pkg-config-flags=--static"
     ],
-    "windows-x64": ["--enable-mediafoundation", "--enable-w32threads"],
+    "windows-x64": ["--enable-mediafoundation", "--enable-d3d11va", "--enable-w32threads"],
     "macos-universal": ["--enable-videotoolbox", "--enable-pthreads"],
     "linux-x64": ["--enable-vaapi", "--enable-pthreads"]
   },
@@ -167,8 +167,9 @@
     "filter": ["rotate"]
   },
   "printed": {
-    "comment": "The names the program prints where they differ from the names of configure, and what it always prints",
+    "comment": "The names the program prints where they differ from the names of configure, and what it always prints. --enable-d3d11va on Windows: mfenc.c of FFmpeg 9.0 uses the D3D11 types of the media foundation encoders whether d3d11va is on or not (the hardware context only, no decoder or hwaccel component).",
     "demuxer": {"mov": "mov,mp4,m4a,3gp,3g2,mj2", "matroska": "matroska,webm", "mpegps": "mpeg"},
+    "bsf": {"dump_extradata": "dump_extra"},
     "filter_always": ["abuffer", "abuffersink", "buffer", "buffersink"]
   },
   "licences": [
@@ -195,7 +196,7 @@
   },
   "permissive": ["LGPL-2.1-or-later", "WTFPL", "BSD-3-Clause-Clear", "BSD-2-Clause", "BSD-3-Clause", "MIT", "ISC", "Zlib", "IJG", "LicenseRef-AOM-Patent-License-1.0"],
   "system_libraries": {
-    "windows-x64": ["advapi32.dll", "bcrypt.dll", "gdi32.dll", "kernel32.dll", "msvcrt.dll", "ole32.dll", "oleaut32.dll", "psapi.dll", "shell32.dll", "shlwapi.dll", "user32.dll", "ws2_32.dll"],
+    "windows-x64": ["advapi32.dll", "bcrypt.dll", "d3d11.dll", "dxgi.dll", "gdi32.dll", "kernel32.dll", "msvcrt.dll", "ole32.dll", "oleaut32.dll", "psapi.dll", "shell32.dll", "shlwapi.dll", "user32.dll", "ws2_32.dll"],
     "linux-x64": ["ld-linux-x86-64.so.2", "libc.so.6", "libdl.so.2", "libdrm.so.2", "libgcc_s.so.1", "libm.so.6", "libpthread.so.0", "librt.so.1", "libstdc++.so.6"],
     "macos-universal": ["/usr/lib/libSystem.B.dylib", "/usr/lib/libc++.1.dylib", "/usr/lib/libobjc.A.dylib", "/System/Library/Frameworks/*"]
   },

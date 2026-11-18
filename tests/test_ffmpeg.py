@@ -187,7 +187,7 @@ class Listings(unittest.TestCase):
         self.assertEqual(build.parse_codecs(text), ['aac', 'libsvtav1'])
 
     def test_formats(self):
-        text = (' D. = Demuxing supported\n .E = Muxing supported\n  ..d = Is a device\n --\n'
+        text = (' D.. = Demuxing supported\n .E. = Muxing supported\n ..d = Is a device\n ---\n'
                 ' D   concat          Virtual concatenation script\n D d lavfi           Libavfilter virtual input device\n'
                 ' D   matroska,webm   Matroska / WebM\n  E  mp4             MP4 (MPEG-4 Part 14)\n')
         self.assertEqual(build.parse_formats(text), ['concat', 'lavfi', 'matroska,webm', 'mp4'])
@@ -209,8 +209,10 @@ class Listings(unittest.TestCase):
         problems = build.buildconf_problems(lock, 'linux-x64', options)
         self.assertTrue(any('--enable-gpl' in problem for problem in problems))
         self.assertTrue(any('libx264' in problem for problem in problems))
-        self.assertEqual(build.buildconf_options('  configuration:\n    --prefix=/x\n    --disable-gpl\n'),
-                         ['--prefix=/x', '--disable-gpl'])
+        self.assertEqual(build.buildconf_options("  configuration:\n    --prefix=/x\n    --disable-gpl\n"
+                                                 "    --enable-encoder='aac,libsvtav1'\n"),
+                         ['--prefix=/x', '--disable-gpl', '--enable-encoder=aac,libsvtav1'])
+        self.assertIn('dump_extra', build.printed(lock, 'bsf', 'linux-x64'))
 
 
 class Closure(unittest.TestCase):
