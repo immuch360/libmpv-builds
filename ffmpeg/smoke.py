@@ -374,10 +374,15 @@ def output_problems(programs: Programs, target: pathlib.Path, record: dict, enco
         if int(stream.get('nb_read_frames', 0)) != record['video']['frames']:
             problems.append(f'{target.name}: {stream.get("nb_read_frames")} frames, the source has '
                             f'{record["video"]["frames"]}')
+        # FFmpeg 9 writes, with -strict unofficial, the st3d box and Apple's vexu box (eyes) beside it; its own
+        # reader then gives the type of vexu, which says nothing of the packing ("unspecified"). The app reads the st3d
+        # box (spatial_media and spherical_probe), checked above; ffprobe must still see stereo side data
         sides = [side.get('side_data_type', '') + ':' + str(side.get('type', '')) for side in
                  stream.get('side_data_list', [])]
-        if not any(side.startswith('Stereo 3D') and 'side by side' in side for side in sides):
-            problems.append(f'{target.name}: ffprobe reads no "Stereo 3D: side by side" ({sides})')
+        found['ffprobe_stereo'] = sides
+        found['vexu'] = b'vexu' in target.read_bytes()
+        if not any(side.startswith('Stereo 3D') for side in sides):
+            problems.append(f'{target.name}: ffprobe reads no Stereo 3D side data ({sides})')
     want = [stream['codec'] if stream['codec'] in COPY_AUDIO else 'aac' for stream in record['audio']]
     got = [stream['codec_name'] for stream in audio]
     if got != want:
@@ -478,11 +483,12 @@ def summary_text(system: str, reports: dict) -> str:
             why = '' if entry['ok'] else f' ({entry["why"][:120]})'
             lines.append(f'| {entry["encoder"]} | `{" ".join(entry["options"][2:])}` | '
                          f'{"passes" if entry["ok"] else "fails" + why} | {entry.get("seconds", "")} |')
-        lines += ['', '| Side by side MP4 | Encoder | Size | Frames | st3d | Streams | OK |',
-                  '|---|---|---|---:|---|---|---|']
+        lines += ['', '| Side by side MP4 | Encoder | Size | Frames | st3d | vexu | Streams | OK |',
+                  '|---|---|---|---:|---|---|---|---|']
         for name, entry in report['sbs'].items():
             lines.append(f'| {name.split()[0]} | {entry["encoder"]} | {entry.get("size", "")} | '
-                         f'{entry.get("frames", "")} | {entry.get("st3d", "")} | {", ".join(entry.get("streams", []))} | '
+                         f'{entry.get("frames", "")} | {entry.get("st3d", "")} | {entry.get("vexu", "")} | '
+                         f'{", ".join(entry.get("streams", []))} | '
                          f'{"yes" if entry["ok"] else "**no**"} |')
         if 'remux' in report:
             lines.append(f'\nMatroska marked left right remuxed to MP4: {"one st3d box, mode 2" if report["remux"]["ok"] else "**failed**"}')
