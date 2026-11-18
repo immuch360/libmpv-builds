@@ -106,7 +106,7 @@
     "linux-x64": {
       "image": "ubuntu:22.04",
       "digest": "sha256:9abcaffc92a5279fff3a6a41635c0800ea33e528425fb389658806476e7defde",
-      "apt": ["http://snapshot.ubuntu.com/ubuntu/20261118T000000Z jammy main universe", "http://snapshot.ubuntu.com/ubuntu/20261118T000000Z jammy-updates main universe", "http://snapshot.ubuntu.com/ubuntu/20261118T000000Z jammy-security main universe"],
+      "apt": ["https://snapshot.ubuntu.com/ubuntu/20261118T000000Z jammy main universe", "https://snapshot.ubuntu.com/ubuntu/20261118T000000Z jammy-updates main universe", "https://snapshot.ubuntu.com/ubuntu/20261118T000000Z jammy-security main universe"],
       "packages": ["autoconf", "automake", "bzip2", "ca-certificates", "cmake", "curl", "file", "g++", "gcc", "git", "libdrm-dev", "libtool", "make", "patchelf", "pkg-config", "python3", "python3-venv", "xz-utils", "zip"]
     },
     "macos-universal": {

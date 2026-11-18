@@ -167,9 +167,11 @@ jobs:
           update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
           update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
           x86_64-w64-mingw32-gcc -v 2>&1 | grep -E '^(gcc version|Thread model)'
-          # The GCC runtime and winpthreads linked in statically: without their import libraries, the linker takes
-          # the static ones, and no libstdc++-6.dll, libgcc_s_seh-1.dll or libwinpthread-1.dll is needed
-          rm -fv /usr/lib/gcc/x86_64-w64-mingw32/*-posix/libstdc++.dll.a /usr/lib/gcc/x86_64-w64-mingw32/*-posix/libgcc_s.a \
+          # libstdc++ and winpthreads linked in statically: without their import libraries, the linker takes the
+          # static ones, and no libstdc++-6.dll or libwinpthread-1.dll is needed. libgcc stays (g++ asks for libgcc_s
+          # when it tests itself); the FFmpeg libraries link it statically with -static-libgcc, and the gate refuses
+          # any import of libgcc_s_seh-1.dll
+          rm -fv /usr/lib/gcc/x86_64-w64-mingw32/*-posix/libstdc++.dll.a \
             /usr/x86_64-w64-mingw32/lib/libwinpthread.dll.a /usr/x86_64-w64-mingw32/lib/libpthread.dll.a
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -250,7 +252,12 @@ jobs:
           APT_SOURCES: ${{ needs.plan.outputs.linux_apt }}
           PACKAGES: ${{ needs.plan.outputs.linux_packages }}
         run: |
-          # http: the image has no CA certificates yet; apt checks the signatures of the archive with its keyring
+          # snapshot.ubuntu.com answers on https only, and the image has no CA certificates: those of Ubuntu's own
+          # archive first, as the image is set up for it (http, checked by the signatures of the archive), then the
+          # snapshot of the lock. apt checks the signatures of every archive with the keyring of the image
+          apt-get -o Acquire::Retries=5 update -q
+          DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=5 install -y -q --no-install-recommends \
+            ca-certificates
           rm -f /etc/apt/sources.list.d/*.sources /etc/apt/sources.list.d/*.list /etc/apt/sources.list
           tr ';' '\n' <<< "$APT_SOURCES" > /etc/apt/sources.list
           cat /etc/apt/sources.list

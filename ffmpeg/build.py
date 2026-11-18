@@ -787,7 +787,10 @@ def source_text(src: pathlib.Path, entry: dict, lock: dict) -> bytes:
     return data
 
 
-def licence_problems(lock: dict, src: pathlib.Path | None, licences: pathlib.Path = LICENCES) -> list:
+def licence_problems(lock: dict, src: pathlib.Path | None, licences: pathlib.Path = LICENCES,
+                     system: str | None = None) -> list:
+    """What is wrong with the licence texts; with [src], each compared with its source (of [system] only when given,
+    whose sources alone are unpacked there)"""
     problems = []
     permissive = set(lock['permissive'])
     named = {entry['text'] for entry in lock['licences']}
@@ -798,7 +801,7 @@ def licence_problems(lock: dict, src: pathlib.Path | None, licences: pathlib.Pat
         if not text.is_file():
             problems.append(f'no licenses/{entry["text"]}')
             continue
-        if src is not None:
+        if src is not None and (system is None or system in entry.get('systems', SYSTEMS)):
             if text_bytes(text.read_bytes()) != source_text(src, entry, lock):
                 problems.append(f'licenses/{entry["text"]} differs from {entry["path"] or "the file"} of '
                                 f'{entry["source"]}: copy it again')
@@ -911,7 +914,7 @@ def command_archive(args) -> int:
     record = json.loads((work / 'build.json').read_text(encoding='utf-8'))
     if record['system'] != args.system:
         raise Failure(f'{work / "build.json"} is the build of {record["system"]}')
-    problems = licence_problems(lock, args.src)
+    problems = licence_problems(lock, args.src, system=args.system)
     stage = work / 'stage'
     files = {}
     for path in sorted(stage.rglob('*')):

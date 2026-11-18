@@ -69,7 +69,7 @@ class Lock(unittest.TestCase):
             container = self.lock['containers'][system]
             self.assertRegex(container['digest'], r'^sha256:[0-9a-f]{64}$')
             for line in container['apt']:
-                self.assertRegex(line, r'^http://snapshot\.(debian\.org|ubuntu\.com)/\S+/\d{8}T\d{6}Z ')
+                self.assertRegex(line, r'^https?://snapshot\.(debian\.org|ubuntu\.com)/\S+/\d{8}T\d{6}Z ')
         self.assertEqual(self.lock['containers']['windows-x64']['image'], 'debian:bookworm')
         self.assertEqual(self.lock['containers']['linux-x64']['image'], 'ubuntu:22.04')
         self.assertEqual(self.lock['containers']['macos-universal']['minimum'], '12.0')
