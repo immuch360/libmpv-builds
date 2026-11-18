@@ -94,11 +94,11 @@ class Lock(unittest.TestCase):
 
     def test_encoders_of_the_plan(self):
         self.assertEqual(build.expected(self.lock, 'encoder', 'windows-x64'),
-                         ['aac', 'h264_mf', 'hevc_mf', 'libsvtav1', 'rawvideo'])
+                         ['aac', 'h264_mf', 'hevc_mf', 'libsvtav1', 'rawvideo', 'wrapped_avframe'])
         self.assertEqual(build.expected(self.lock, 'encoder', 'macos-universal'),
-                         ['aac', 'h264_videotoolbox', 'hevc_videotoolbox', 'libsvtav1', 'rawvideo'])
+                         ['aac', 'h264_videotoolbox', 'hevc_videotoolbox', 'libsvtav1', 'rawvideo', 'wrapped_avframe'])
         self.assertEqual(build.expected(self.lock, 'encoder', 'linux-x64'),
-                         ['aac', 'h264_vaapi', 'hevc_vaapi', 'libsvtav1', 'rawvideo'])
+                         ['aac', 'h264_vaapi', 'hevc_vaapi', 'libsvtav1', 'rawvideo', 'wrapped_avframe'])
         self.assertEqual(build.expected(self.lock, 'protocol', 'linux-x64'), ['file', 'pipe'])
 
     def test_what_the_app_needs(self):

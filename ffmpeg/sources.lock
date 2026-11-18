@@ -130,13 +130,13 @@
   },
   "components": {
     "encoder": {
-      "all": ["rawvideo", "aac", "libsvtav1"],
+      "all": ["rawvideo", "aac", "libsvtav1", "wrapped_avframe"],
       "windows-x64": ["h264_mf", "hevc_mf"],
       "macos-universal": ["h264_videotoolbox", "hevc_videotoolbox"],
       "linux-x64": ["h264_vaapi", "hevc_vaapi"]
     },
     "decoder": {
-      "all": ["h264", "hevc", "vp8", "vp9", "libdav1d", "mpeg1video", "mpeg2video", "mpeg4", "h263", "mjpeg", "prores", "dnxhd", "vc1", "wmv3", "theora", "rawvideo", "aac", "aac_latm", "ac3", "eac3", "mp2", "mp3", "opus", "vorbis", "flac", "alac", "truehd", "mlp", "dca", "pcm_alaw", "pcm_bluray", "pcm_dvd", "pcm_f16le", "pcm_f24le", "pcm_f32be", "pcm_f32le", "pcm_f64be", "pcm_f64le", "pcm_lxf", "pcm_mulaw", "pcm_s8", "pcm_s8_planar", "pcm_s16be", "pcm_s16be_planar", "pcm_s16le", "pcm_s16le_planar", "pcm_s24be", "pcm_s24daud", "pcm_s24le", "pcm_s24le_planar", "pcm_s32be", "pcm_s32le", "pcm_s32le_planar", "pcm_s64be", "pcm_s64le", "pcm_sga", "pcm_u8", "pcm_u16be", "pcm_u16le", "pcm_u24be", "pcm_u24le", "pcm_u32be", "pcm_u32le", "pcm_vidc"]
+      "all": ["wrapped_avframe", "h264", "hevc", "vp8", "vp9", "libdav1d", "mpeg1video", "mpeg2video", "mpeg4", "h263", "mjpeg", "prores", "dnxhd", "vc1", "wmv3", "theora", "rawvideo", "aac", "aac_latm", "ac3", "eac3", "mp2", "mp3", "opus", "vorbis", "flac", "alac", "truehd", "mlp", "dca", "pcm_alaw", "pcm_bluray", "pcm_dvd", "pcm_f16le", "pcm_f24le", "pcm_f32be", "pcm_f32le", "pcm_f64be", "pcm_f64le", "pcm_lxf", "pcm_mulaw", "pcm_s8", "pcm_s8_planar", "pcm_s16be", "pcm_s16be_planar", "pcm_s16le", "pcm_s16le_planar", "pcm_s24be", "pcm_s24daud", "pcm_s24le", "pcm_s24le_planar", "pcm_s32be", "pcm_s32le", "pcm_s32le_planar", "pcm_s64be", "pcm_s64le", "pcm_sga", "pcm_u8", "pcm_u16be", "pcm_u16le", "pcm_u24be", "pcm_u24le", "pcm_u32be", "pcm_u32le", "pcm_vidc"]
     },
     "demuxer": {
       "all": ["mov", "matroska", "avi", "mpegts", "mpegps", "flv", "ogg", "asf", "m4v", "h264", "hevc", "concat", "rawvideo"]
@@ -167,7 +167,7 @@
     "filter": ["rotate"]
   },
   "printed": {
-    "comment": "The names the program prints where they differ from the names of configure, and what it always prints. --enable-d3d11va on Windows: mfenc.c of FFmpeg 9.0 uses the D3D11 types of the media foundation encoders whether d3d11va is on or not (the hardware context only, no decoder or hwaccel component).",
+    "comment": "wrapped_avframe (encoder and decoder): the frames of the lavfi device and of the null muxer travel as wrapped frames, so the one second encoder test of the plan (-f lavfi -i color ... -f null -) needs both. The names the program prints where they differ from the names of configure, and what it always prints. --enable-d3d11va on Windows: mfenc.c of FFmpeg 9.0 uses the D3D11 types of the media foundation encoders whether d3d11va is on or not (the hardware context only, no decoder or hwaccel component).",
     "demuxer": {"mov": "mov,mp4,m4a,3gp,3g2,mj2", "matroska": "matroska,webm", "mpegps": "mpeg"},
     "bsf": {"dump_extradata": "dump_extra"},
     "filter_always": ["abuffer", "abuffersink", "buffer", "buffersink"]

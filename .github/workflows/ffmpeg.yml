@@ -125,7 +125,7 @@ jobs:
         run: |
           sudo apt-get update -q
           sudo apt-get install -y -q --no-install-recommends ffmpeg
-          ffmpeg -hide_banner -version | head -1
+          ffmpeg -hide_banner -version | sed -n 1p
           python3 -I ffmpeg/smoke.py fixtures --out fixtures
 
       - name: Upload the clips
@@ -264,8 +264,8 @@ jobs:
           apt-get -o Acquire::Retries=5 update -q
           # shellcheck disable=SC2086 # the packages are words
           DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=5 install -y -q --no-install-recommends $PACKAGES
-          gcc --version | head -1
-          ldd --version | head -1
+          gcc --version | sed -n 1p
+          ldd --version | sed -n 1p
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -571,7 +571,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/program"
           unzip -q "$(ls dist/*.zip)" -d "$RUNNER_TEMP/program"
           launcher="$RUNNER_TEMP/program/bin/immuch360-run"
-          "$launcher" --parent $$ -- "$RUNNER_TEMP/program/bin/ffmpeg" -hide_banner -version | head -1
+          "$launcher" --parent $$ -- "$RUNNER_TEMP/program/bin/ffmpeg" -hide_banner -version | sed -n 1p
           bash -c "\"$launcher\" --parent \$\$ -- /bin/sh -c 'echo \$\$ > \"$RUNNER_TEMP/child\"; exec sleep 300' & sleep 1; kill -9 \$\$" || true
           sleep 1
           child=$(cat "$RUNNER_TEMP/child")
