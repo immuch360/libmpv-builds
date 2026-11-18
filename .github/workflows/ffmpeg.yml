@@ -1,0 +1,700 @@
+name: FFmpeg program for Immuch360
+
+# Builds ffmpeg and ffprobe with their shared libraries, under the LGPL 2.1 or later, for Windows x64, Linux x64 and macOS
+# (arm64 and x86_64 in one), from the sources of ffmpeg/sources.lock, and publishes them on a release of their own,
+# ffmpeg-lgpl-<date>-<run number>, with their SHA-256 sums, their licence texts, the corresponding source and a manifest
+# for a catalogue of components. Immuch360 Desktop downloads one of these archives when the user asks for its 2D to 3D
+# video conversion (experimental) and runs the program as a separate process: decode to raw frames on a pipe, encode
+# side by side frames from a pipe, join the segments with the source's sound and the 3D marking.
+#
+# Why here: this repository already builds FFmpeg with its LGPL notices, sources and sums for the app's libmpv. libmpv
+# plays but cannot encode, and the app needs a program it can run, with the encoders of each system: H.264 and HEVC
+# through Media Foundation (Windows), VideoToolbox (macOS) and VA-API (Linux), AV1 by SVT-AV1 everywhere, AAC. Nothing
+# GPL or non free: no libx264, libx265, OpenH264, NVENC, AMF or QSV.
+#
+# Jobs:
+#   plan        the release tag, the commit time (SOURCE_DATE_EPOCH), the containers of the lock; every source archive
+#               downloaded once and checked by its SHA-256, the licence texts compared with the sources, the
+#               components configure pulls in compared with the lock
+#   fixtures    the test clips, made with the FFmpeg of the runner (test inputs only, never shipped): H.264, HEVC
+#               (8 bit, and 10 bit HLG turned 90 degrees as phones store it), AV1, VP9, VP8, MPEG-2, ProRes, MJPEG in
+#               MP4, Matroska, WebM, MPEG-TS, MOV and AVI
+#   windows     cross compiled with mingw-w64 in Debian 12 (container pinned by its digest, packages from
+#               snapshot.debian.org at a fixed date), twice in parallel (attempt 1 and 2)
+#   linux       in Ubuntu 22.04 (glibc 2.35, container pinned by its digest, packages from snapshot.ubuntu.com), twice
+#   macos       on macos-15 with a pinned Xcode: arm64 natively, x86_64 cross compiled, joined by lipo, signed ad hoc,
+#               twice
+#   same        the two attempts of Windows and of Linux must give the same archive, byte for byte; macOS is said
+#   test-*      the archive of attempt 1 on a runner of its system: the gate (build.py check --run) and what the app
+#               asks of it (smoke.py run). On a publish run, test-windows also signs every .exe and .dll by APROGSYS
+#               with Azure Artifact Signing (ffmpeg/windows_sign.py), checks them with signtool verify /pa and tests the
+#               signed archive again; the three credentials of the signing account go to that one step only
+#   release     on a publish run only: the corresponding source, the manifest, SHA256SUMS.txt and the release, a
+#               prerelease never marked latest, refused when the Windows archive is not signed; then its assets are
+#               downloaded again and checked against SHA256SUMS.txt and the manifest
+#
+# Triggers: pull requests that change ffmpeg/ or this file build and check, and publish nothing; a run by hand
+# (workflow_dispatch) with publish on makes the release. Permissions: contents read, write on the release job only.
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Sign the Windows files and publish the release ffmpeg-lgpl-<date>-<run> (otherwise artifacts only)'
+        required: false
+        default: true
+        type: boolean
+  pull_request:
+    paths:
+      - .github/workflows/ffmpeg.yml
+      - ffmpeg/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ffmpeg-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  PUBLISH: ${{ github.event_name == 'workflow_dispatch' && inputs.publish }}
+
+jobs:
+  plan:
+    name: Plan, sources and licences
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      tag: ${{ steps.plan.outputs.tag }}
+      epoch: ${{ steps.plan.outputs.epoch }}
+      windows_image: ${{ steps.windows.outputs.image }}
+      windows_apt: ${{ steps.windows.outputs.apt_sources }}
+      windows_packages: ${{ steps.windows.outputs.packages }}
+      linux_image: ${{ steps.linux.outputs.image }}
+      linux_apt: ${{ steps.linux.outputs.apt_sources }}
+      linux_packages: ${{ steps.linux.outputs.packages }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Tag and commit time
+        id: plan
+        run: |
+          echo "tag=ffmpeg-lgpl-$(date -u +%Y%m%d)-${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+          echo "epoch=$(git log -1 --format=%ct)" >> "$GITHUB_OUTPUT"
+
+      - name: The containers of the lock
+        id: windows
+        run: python3 -I ffmpeg/build.py lock --system windows-x64 --github-output
+
+      - name: The containers of the lock (Linux)
+        id: linux
+        run: python3 -I ffmpeg/build.py lock --system linux-x64 --github-output
+
+      - name: Every source of the lock, checked by its SHA-256, and what configure pulls in
+        run: python3 -I ffmpeg/build.py sources --dir "$RUNNER_TEMP/src" --cache archives
+
+      - name: The licence texts against the sources
+        run: python3 -I ffmpeg/build.py licences --src "$RUNNER_TEMP/src"
+
+      - name: Upload the source archives
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: source-archives
+          path: archives/
+          retention-days: 14
+          compression-level: 0
+          if-no-files-found: error
+
+  fixtures:
+    name: Test clips
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The FFmpeg of Ubuntu has libx264, libx265 and libvpx: they make the test inputs and nothing else
+      - name: The clips
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends ffmpeg
+          ffmpeg -hide_banner -version | head -1
+          python3 -I ffmpeg/smoke.py fixtures --out fixtures
+
+      - name: Upload the clips
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: fixtures
+          path: fixtures/
+          retention-days: 7
+          if-no-files-found: error
+
+  windows:
+    name: Windows x64 build ${{ matrix.attempt }}
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    container:
+      image: ${{ needs.plan.outputs.windows_image }} # zizmor: ignore[unpinned-images] pinned by its digest in the lock
+    strategy:
+      fail-fast: false
+      matrix:
+        attempt: [1, 2]
+    env:
+      SOURCE_DATE_EPOCH: ${{ needs.plan.outputs.epoch }}
+      IMMUCH360_CONTAINER: ${{ needs.plan.outputs.windows_image }}
+      TAG: ${{ needs.plan.outputs.tag }}
+    steps:
+      - name: Packages of the lock, from snapshot.debian.org
+        env:
+          APT_SOURCES: ${{ needs.plan.outputs.windows_apt }}
+          PACKAGES: ${{ needs.plan.outputs.windows_packages }}
+        run: |
+          # http: the image has no CA certificates yet; apt checks the signatures of the archive with its keyring
+          rm -f /etc/apt/sources.list.d/*.sources /etc/apt/sources.list
+          tr ';' '\n' <<< "$APT_SOURCES" > /etc/apt/sources.list
+          cat /etc/apt/sources.list
+          apt-get -o Acquire::Retries=5 update -q
+          # shellcheck disable=SC2086 # the packages are words
+          DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=5 install -y -q --no-install-recommends $PACKAGES
+          update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
+          update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
+          x86_64-w64-mingw32-gcc -v 2>&1 | grep -E '^(gcc version|Thread model)'
+          # The GCC runtime and winpthreads linked in statically: without their import libraries, the linker takes
+          # the static ones, and no libstdc++-6.dll, libgcc_s_seh-1.dll or libwinpthread-1.dll is needed
+          rm -fv /usr/lib/gcc/x86_64-w64-mingw32/*-posix/libstdc++.dll.a /usr/lib/gcc/x86_64-w64-mingw32/*-posix/libgcc_s.a \
+            /usr/x86_64-w64-mingw32/lib/libwinpthread.dll.a /usr/x86_64-w64-mingw32/lib/libpthread.dll.a
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download the source archives
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: source-archives
+          path: archives
+
+      - name: Meson and Ninja of the lock
+        run: |
+          python3 -m venv /opt/venv
+          /opt/venv/bin/python -m pip install --disable-pip-version-check -q --require-hashes -r ffmpeg/requirements.txt
+          echo /opt/venv/bin >> "$GITHUB_PATH"
+
+      - name: Sources
+        run: python3 -I ffmpeg/build.py sources --dir /opt/ffmpeg-src --cache archives --system windows-x64
+
+      - name: Build
+        id: build
+        run: python3 -I ffmpeg/build.py build --system windows-x64 --src /opt/ffmpeg-src --work /opt/ffmpeg-work
+
+      - name: Archive and the gate on its files
+        id: archive
+        run: |
+          python3 -I ffmpeg/build.py archive --system windows-x64 --work /opt/ffmpeg-work --src /opt/ffmpeg-src \
+            --out dist --tag "$TAG" --commit "$GITHUB_SHA"
+          python3 -I ffmpeg/build.py check --system windows-x64 --archive "$(ls dist/*.zip)"
+
+      - name: Upload the archive
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: archive-windows-x64-${{ matrix.attempt }}
+          path: dist/*.zip
+          retention-days: 14
+          compression-level: 0
+          if-no-files-found: error
+
+      - name: Build logs
+        if: failure()
+        run: |
+          mkdir -p logs
+          find /opt/ffmpeg-work -name config.log -o -name meson-log.txt -o -name CMakeError.log | while read -r f; do
+            cp --parents "$f" logs/
+          done
+          tar -czf logs.tar.gz logs
+
+      - name: Upload the build logs
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: logs-windows-x64-${{ matrix.attempt }}
+          path: logs.tar.gz
+          retention-days: 7
+          if-no-files-found: ignore
+
+  linux:
+    name: Linux x64 build ${{ matrix.attempt }}
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    container:
+      image: ${{ needs.plan.outputs.linux_image }} # zizmor: ignore[unpinned-images] pinned by its digest in the lock
+    strategy:
+      fail-fast: false
+      matrix:
+        attempt: [1, 2]
+    env:
+      SOURCE_DATE_EPOCH: ${{ needs.plan.outputs.epoch }}
+      IMMUCH360_CONTAINER: ${{ needs.plan.outputs.linux_image }}
+      TAG: ${{ needs.plan.outputs.tag }}
+    steps:
+      - name: Packages of the lock, from snapshot.ubuntu.com
+        env:
+          APT_SOURCES: ${{ needs.plan.outputs.linux_apt }}
+          PACKAGES: ${{ needs.plan.outputs.linux_packages }}
+        run: |
+          # http: the image has no CA certificates yet; apt checks the signatures of the archive with its keyring
+          rm -f /etc/apt/sources.list.d/*.sources /etc/apt/sources.list.d/*.list /etc/apt/sources.list
+          tr ';' '\n' <<< "$APT_SOURCES" > /etc/apt/sources.list
+          cat /etc/apt/sources.list
+          apt-get -o Acquire::Retries=5 update -q
+          # shellcheck disable=SC2086 # the packages are words
+          DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=5 install -y -q --no-install-recommends $PACKAGES
+          gcc --version | head -1
+          ldd --version | head -1
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download the source archives
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: source-archives
+          path: archives
+
+      - name: Meson and Ninja of the lock
+        run: |
+          python3 -m venv /opt/venv
+          /opt/venv/bin/python -m pip install --disable-pip-version-check -q --require-hashes -r ffmpeg/requirements.txt
+          echo /opt/venv/bin >> "$GITHUB_PATH"
+
+      - name: Sources
+        run: python3 -I ffmpeg/build.py sources --dir /opt/ffmpeg-src --cache archives --system linux-x64
+
+      - name: Build
+        run: python3 -I ffmpeg/build.py build --system linux-x64 --src /opt/ffmpeg-src --work /opt/ffmpeg-work
+
+      # The programs run here too, on the glibc 2.35 they were built for; test-linux runs them on a newer Ubuntu
+      - name: Archive and the gate, programs included
+        run: |
+          python3 -I ffmpeg/build.py archive --system linux-x64 --work /opt/ffmpeg-work --src /opt/ffmpeg-src \
+            --out dist --tag "$TAG" --commit "$GITHUB_SHA"
+          python3 -I ffmpeg/build.py check --system linux-x64 --archive "$(ls dist/*.zip)" --run \
+            --report "dist-report.json" || { cat dist-report.json; exit 1; }
+
+      - name: Upload the archive
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: archive-linux-x64-${{ matrix.attempt }}
+          path: dist/*.zip
+          retention-days: 14
+          compression-level: 0
+          if-no-files-found: error
+
+      - name: Build logs
+        if: failure()
+        run: |
+          mkdir -p logs
+          find /opt/ffmpeg-work -name config.log -o -name meson-log.txt -o -name CMakeError.log | while read -r f; do
+            cp --parents "$f" logs/
+          done
+          tar -czf logs.tar.gz logs
+
+      - name: Upload the build logs
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: logs-linux-x64-${{ matrix.attempt }}
+          path: logs.tar.gz
+          retention-days: 7
+          if-no-files-found: ignore
+
+  macos:
+    name: macOS universal build ${{ matrix.attempt }}
+    needs: plan
+    runs-on: macos-15
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        attempt: [1, 2]
+    env:
+      SOURCE_DATE_EPOCH: ${{ needs.plan.outputs.epoch }}
+      TAG: ${{ needs.plan.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Xcode, the tools and Rosetta
+        id: lock
+        run: |
+          python3 -I ffmpeg/build.py lock --system macos-universal --github-output
+          xcode=$(grep '^xcode=' "$GITHUB_OUTPUT" | tail -1 | cut -d= -f2)
+          if [ ! -d "/Applications/Xcode_$xcode.app" ]; then
+            echo "::error::No Xcode $xcode on this runner image: set it in ffmpeg/sources.lock to one its readme lists"
+            exit 1
+          fi
+          sudo xcode-select -s "/Applications/Xcode_$xcode.app/Contents/Developer"
+          xcodebuild -version
+          packages=$(grep '^packages=' "$GITHUB_OUTPUT" | tail -1 | cut -d= -f2)
+          # shellcheck disable=SC2086 # the packages are words
+          brew list $packages > /dev/null 2>&1 || brew install $packages
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/python" -m pip install --disable-pip-version-check -q --require-hashes \
+            -r ffmpeg/requirements.txt
+          echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
+          if ! arch -x86_64 /usr/bin/true 2>/dev/null; then
+            sudo softwareupdate --install-rosetta --agree-to-license
+          fi
+          arch -x86_64 /usr/bin/true && echo "Rosetta runs x86_64 programs"
+
+      - name: Download the source archives
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: source-archives
+          path: archives
+
+      - name: Sources
+        run: python3 -I ffmpeg/build.py sources --dir "$RUNNER_TEMP/ffmpeg-src" --cache archives --system macos-universal
+
+      - name: Build arm64 and x86_64, lipo, ad hoc signature
+        run: |
+          python3 -I ffmpeg/build.py build --system macos-universal --src "$RUNNER_TEMP/ffmpeg-src" \
+            --work "$RUNNER_TEMP/ffmpeg-work"
+
+      - name: Archive and the gate, programs included, arm64 and x86_64
+        run: |
+          python3 -I ffmpeg/build.py archive --system macos-universal --work "$RUNNER_TEMP/ffmpeg-work" \
+            --src "$RUNNER_TEMP/ffmpeg-src" --out dist --tag "$TAG" --commit "$GITHUB_SHA"
+          python3 -I ffmpeg/build.py check --system macos-universal --archive "$(ls dist/*.zip)" --run --arch-x86-64 \
+            --report dist-report.json || { cat dist-report.json; exit 1; }
+
+      - name: Upload the archive
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: archive-macos-universal-${{ matrix.attempt }}
+          path: dist/*.zip
+          retention-days: 14
+          compression-level: 0
+          if-no-files-found: error
+
+      - name: Build logs
+        if: failure()
+        run: |
+          mkdir -p logs
+          find "$RUNNER_TEMP/ffmpeg-work" \( -name config.log -o -name meson-log.txt -o -name CMakeError.log \) \
+            -exec cp {} logs/ \; 2>/dev/null || true
+          tar -czf logs.tar.gz logs
+
+      - name: Upload the build logs
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: logs-macos-universal-${{ matrix.attempt }}
+          path: logs.tar.gz
+          retention-days: 7
+          if-no-files-found: ignore
+
+  same:
+    name: Two builds, the same bytes
+    needs: [windows, linux, macos]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Download the archives of both attempts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: archive-*
+          path: attempts
+
+      - name: Compare
+        run: |
+          failed=0
+          {
+            echo "### Two builds of the same run"
+            echo
+            echo "| System | Attempt 1 | Attempt 2 | Same |"
+            echo "|---|---|---|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
+          for system in windows-x64 linux-x64 macos-universal; do
+            one=$(sha256sum attempts/archive-$system-1/*.zip | cut -d' ' -f1)
+            two=$(sha256sum attempts/archive-$system-2/*.zip | cut -d' ' -f1)
+            same=yes
+            if [ "$one" != "$two" ]; then
+              same=no
+              if [ "$system" = macos-universal ]; then
+                echo "::warning::macOS: the two builds differ (best effort)"
+              else
+                echo "::error::$system: the two builds differ"
+                failed=1
+                mkdir -p "diff/$system/1" "diff/$system/2"
+                unzip -q attempts/archive-$system-1/*.zip -d "diff/$system/1"
+                unzip -q attempts/archive-$system-2/*.zip -d "diff/$system/2"
+                (cd "diff/$system/1" && sha256sum $(find . -type f | sort)) > "diff/$system-1.txt"
+                (cd "diff/$system/2" && sha256sum $(find . -type f | sort)) > "diff/$system-2.txt"
+                diff "diff/$system-1.txt" "diff/$system-2.txt" || true
+              fi
+            fi
+            echo "| $system | \`${one:0:16}\` | \`${two:0:16}\` | $same |" >> "$GITHUB_STEP_SUMMARY"
+          done
+          exit "$failed"
+
+  test-windows:
+    name: Windows x64 gate, app checks and signature
+    needs: [plan, fixtures, windows]
+    runs-on: windows-2022
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download the archive
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: archive-windows-x64-1
+          path: dist
+
+      - name: Download the clips
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: fixtures
+          path: fixtures
+
+      - name: The gate, programs included
+        run: |
+          python -I ffmpeg/build.py check --system windows-x64 --archive "$(ls dist/*.zip)" --run \
+            --report "$RUNNER_TEMP/report.json" || { cat "$RUNNER_TEMP/report.json"; exit 1; }
+
+      - name: What the app asks of the program
+        run: |
+          python -I ffmpeg/smoke.py run --system windows-x64 --archive "$(ls dist/*.zip)" --fixtures fixtures \
+            --work "$RUNNER_TEMP/smoke" --report "$RUNNER_TEMP/smoke.json" --summary "$GITHUB_STEP_SUMMARY"
+
+      # On a publish run only: every .exe and .dll signed by APROGSYS with Azure Artifact Signing
+      # (ffmpeg/windows_sign.py, the tools and settings of av2-companion and of the app's release workflow), checked by
+      # signtool verify /pa, put back into the archive (build.py signed refuses a file that differs by more than its
+      # signature), and the archive tested again. The credentials go to the signing step only
+      - name: Signing tools
+        if: env.PUBLISH == 'true'
+        run: python -I ffmpeg/windows_sign.py tools --dir "$RUNNER_TEMP/signing"
+
+      - name: Sign the programs and libraries
+        if: env.PUBLISH == 'true'
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+        run: |
+          python -I ffmpeg/build.py program --system windows-x64 --archive "$(ls dist/*.zip)" --out "$RUNNER_TEMP/tosign"
+          tosign=$(cygpath -u "$RUNNER_TEMP")/tosign/bin
+          mapfile -t files < <(ls "$tosign"/*.exe "$tosign"/*.dll)
+          python -I ffmpeg/windows_sign.py sign --tools "$RUNNER_TEMP/signing" "${files[@]}"
+
+      - name: signtool verify /pa
+        if: env.PUBLISH == 'true'
+        run: |
+          tosign=$(cygpath -u "$RUNNER_TEMP")/tosign/bin
+          mapfile -t files < <(ls "$tosign"/*.exe "$tosign"/*.dll)
+          python -I ffmpeg/windows_sign.py verify --tools "$RUNNER_TEMP/signing" "${files[@]}"
+
+      - name: The signed archive, tested again
+        if: env.PUBLISH == 'true'
+        run: |
+          archive=$(ls dist/*.zip)
+          python -I ffmpeg/build.py signed --system windows-x64 --archive "$archive" --signed "$RUNNER_TEMP/tosign" \
+            --out "$RUNNER_TEMP/signed"
+          mv -f "$RUNNER_TEMP/signed/$(basename "$archive")" "$archive"
+          python -I ffmpeg/build.py check --system windows-x64 --archive "$archive" --run
+          python -I ffmpeg/smoke.py run --system windows-x64 --archive "$archive" --fixtures fixtures \
+            --work "$RUNNER_TEMP/smoke-signed"
+
+      - name: Upload the archive
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: final-windows-x64
+          path: dist/*.zip
+          retention-days: 14
+          compression-level: 0
+          if-no-files-found: error
+
+  test-linux:
+    name: Linux x64 gate and app checks (Ubuntu 24.04)
+    needs: [plan, fixtures, linux]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download the archive
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: archive-linux-x64-1
+          path: dist
+
+      - name: Download the clips
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: fixtures
+          path: fixtures
+
+      - name: The gate, programs included
+        run: |
+          python3 -I ffmpeg/build.py check --system linux-x64 --archive "$(ls dist/*.zip)" --run \
+            --report "$RUNNER_TEMP/report.json" || { cat "$RUNNER_TEMP/report.json"; exit 1; }
+
+      - name: What the app asks of the program
+        run: |
+          python3 -I ffmpeg/smoke.py run --system linux-x64 --archive "$(ls dist/*.zip)" --fixtures fixtures \
+            --work "$RUNNER_TEMP/smoke" --report "$RUNNER_TEMP/smoke.json" --summary "$GITHUB_STEP_SUMMARY"
+
+      - name: immuch360-run makes the program die with its parent
+        run: |
+          mkdir -p "$RUNNER_TEMP/program"
+          unzip -q "$(ls dist/*.zip)" -d "$RUNNER_TEMP/program"
+          launcher="$RUNNER_TEMP/program/bin/immuch360-run"
+          "$launcher" --parent $$ -- "$RUNNER_TEMP/program/bin/ffmpeg" -hide_banner -version | head -1
+          bash -c "\"$launcher\" --parent \$\$ -- /bin/sh -c 'echo \$\$ > \"$RUNNER_TEMP/child\"; exec sleep 300' & sleep 1; kill -9 \$\$" || true
+          sleep 1
+          child=$(cat "$RUNNER_TEMP/child")
+          if [ -e "/proc/$child" ]; then echo "::error::the child $child outlived its parent"; exit 1; fi
+          echo "the child $child died with its parent"
+
+      - name: Upload the archive
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: final-linux-x64
+          path: dist/*.zip
+          retention-days: 14
+          compression-level: 0
+          if-no-files-found: error
+
+  test-macos:
+    name: macOS gate and app checks, arm64 and x86_64
+    needs: [plan, fixtures, macos]
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Rosetta
+        run: |
+          if ! arch -x86_64 /usr/bin/true 2>/dev/null; then
+            sudo softwareupdate --install-rosetta --agree-to-license
+          fi
+          arch -x86_64 /usr/bin/true && echo "Rosetta runs x86_64 programs"
+
+      - name: Download the archive
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: archive-macos-universal-1
+          path: dist
+
+      - name: Download the clips
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: fixtures
+          path: fixtures
+
+      - name: The gate, programs included
+        run: |
+          python3 -I ffmpeg/build.py check --system macos-universal --archive "$(ls dist/*.zip)" --run --arch-x86-64 \
+            --report "$RUNNER_TEMP/report.json" || { cat "$RUNNER_TEMP/report.json"; exit 1; }
+
+      - name: What the app asks of the program
+        run: |
+          python3 -I ffmpeg/smoke.py run --system macos-universal --archive "$(ls dist/*.zip)" --fixtures fixtures \
+            --work "$RUNNER_TEMP/smoke" --report "$RUNNER_TEMP/smoke.json" --summary "$GITHUB_STEP_SUMMARY" \
+            --arch-x86-64
+
+      - name: Upload the archive
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: final-macos-universal
+          path: dist/*.zip
+          retention-days: 14
+          compression-level: 0
+          if-no-files-found: error
+
+  release:
+    name: Release
+    needs: [plan, same, test-windows, test-linux, test-macos]
+    if: github.event_name == 'workflow_dispatch' && inputs.publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write # creates the release and its tag
+    env:
+      TAG: ${{ needs.plan.outputs.tag }}
+      SOURCE_DATE_EPOCH: ${{ needs.plan.outputs.epoch }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download the archives
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: final-*
+          path: archives
+          merge-multiple: true
+
+      - name: Download the source archives
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: source-archives
+          path: source-archives
+
+      - name: The corresponding source, the manifest and the sums
+        run: |
+          for zip in archives/*.zip; do
+            system=$(basename "$zip" .zip | sed -E 's/^Immuch360-ffmpeg-[0-9.]+-[0-9]+-//')
+            mkdir -p "builds/$system"
+            unzip -p "$zip" BUILD-INFO.txt > "builds/$system/BUILD-INFO.txt"
+          done
+          python3 -I ffmpeg/build.py source-archive --cache source-archives --builds builds \
+            --out "$RUNNER_TEMP/$TAG-sources.tar.xz" --tag "$TAG" --commit "$GITHUB_SHA"
+          python3 -I ffmpeg/build.py release --archives archives --sources "$RUNNER_TEMP/$TAG-sources.tar.xz" \
+            --out release --tag "$TAG" --commit "$GITHUB_SHA" --run "$GITHUB_RUN_ID" --notes "$RUNNER_TEMP/notes.md" \
+            --require-signed-windows
+          ls -l release
+
+      - name: The release, a prerelease never marked latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber release/*
+          else
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease --latest=false \
+              --title "FFmpeg program for Immuch360, $TAG" --notes-file "$RUNNER_TEMP/notes.md" release/*
+          fi
+
+      - name: The assets as GitHub serves them
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir served
+          python3 -I ffmpeg/build.py verify --dir served --tag "$TAG"
+          {
+            echo "### $TAG"
+            echo
+            echo "Prerelease, never latest. The entries for a catalogue of components: \`ffmpeg-lgpl-$TAG.json\`."
+            echo
+            echo '```'
+            cat served/SHA256SUMS.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,205 @@
+{
+  "comment": "The FFmpeg program of Immuch360 Desktop (ffmpeg and ffprobe, LGPL-2.1-or-later): every source by its address and the SHA-256 of its archive, the containers by their digests, the toolchains, the configure options and the exact lists of components the program must report. Read by ffmpeg/build.py and .github/workflows/ffmpeg.yml; checked by tests/test_ffmpeg.py. Resolved on 18 November 2026.",
+  "id": "9.0.2-1",
+  "ffmpeg": {
+    "version": "9.0.2",
+    "tag": "n9.0.2",
+    "commit": "946fcce07b6dcd0331c8cc609192aeff5e1924f8",
+    "repository": "https://git.ffmpeg.org/ffmpeg.git",
+    "url": "https://ffmpeg.org/releases/ffmpeg-9.0.2.tar.xz",
+    "size": 12040788,
+    "sha256": "8c3850283eb25fa026482078a04051e0be17347b09ef81a0849bec15a96e002e",
+    "signature": "ffmpeg-9.0.2.tar.xz.asc, good signature of the FFmpeg release signing key FCF986EA15E6E293A5644F10B4322F04D67658D8 (checked on 18 November 2026)"
+  },
+  "sources": [
+    {
+      "name": "zimg",
+      "version": "3.0.6",
+      "url": "https://github.com/sekrit-twc/zimg/archive/refs/tags/release-3.0.6.tar.gz",
+      "size": 326725,
+      "sha256": "be89390f13a5c9b2388ce0f44a5e89364a20c1c57ce46d382b1fcc3967057577",
+      "commit": "ef19c4adcfda6e8b4af57aa9dc640e48f6306c35",
+      "licence": "WTFPL",
+      "systems": ["windows-x64", "linux-x64", "macos-universal"]
+    },
+    {
+      "name": "svt-av1",
+      "version": "3.1.2",
+      "url": "https://gitlab.com/AOMediaCodec/SVT-AV1/-/archive/v3.1.2/SVT-AV1-v3.1.2.tar.gz",
+      "size": 10909754,
+      "sha256": "d0d73bfea42fdcc1222272bf2b0e2319e9df5574721298090c3d28315586ecb1",
+      "commit": "b33dcc56cc64fcb3b3569094af8ab1d0d81ab4c1",
+      "licence": "BSD-3-Clause-Clear AND BSD-2-Clause AND BSD-3-Clause AND MIT AND LicenseRef-AOM-Patent-License-1.0",
+      "systems": ["windows-x64", "linux-x64", "macos-universal"]
+    },
+    {
+      "name": "dav1d",
+      "version": "1.5.5",
+      "url": "https://downloads.videolan.org/pub/videolan/dav1d/1.5.5/dav1d-1.5.5.tar.xz",
+      "size": 1051484,
+      "sha256": "ca96b1d0ba3f01f55de7231d775892b64994ba061aaeeaaa4f662a390b3abf9e",
+      "commit": "0218c8dd014e7aafe0e96c62a8fcb32eb67b5ac7",
+      "licence": "BSD-2-Clause AND ISC",
+      "systems": ["windows-x64", "linux-x64", "macos-universal"]
+    },
+    {
+      "name": "zlib",
+      "version": "1.3.2",
+      "url": "https://github.com/madler/zlib/releases/download/v1.3.2/zlib-1.3.2.tar.xz",
+      "size": 1320064,
+      "sha256": "d7a0654783a4da529d1bb793b7ad9c3318020af77667bcae35f95d0e42a792f3",
+      "commit": "216c70c020aa53f0c40920d155f808b6b59c9acb",
+      "licence": "Zlib",
+      "systems": ["windows-x64", "linux-x64", "macos-universal"]
+    },
+    {
+      "name": "libva",
+      "version": "2.24.1",
+      "url": "https://github.com/intel/libva/releases/download/2.24.1/libva-2.24.1.tar.bz2",
+      "size": 557422,
+      "sha256": "eec6050b52876f229bd35e9df17cd31a06785e18e6f7990c445b584628483d67",
+      "commit": "5a99f4a1574755c27327c29ee6736ba979b281e8",
+      "licence": "MIT",
+      "systems": ["linux-x64"],
+      "driverdir": "/usr/lib/x86_64-linux-gnu/dri:/usr/lib64/dri:/usr/lib/dri"
+    },
+    {
+      "name": "nasm",
+      "version": "2.16.03",
+      "url": "https://www.nasm.us/pub/nasm/releasebuilds/2.16.03/nasm-2.16.03.tar.xz",
+      "size": 1032388,
+      "sha256": "1412a1c760bbd05db026b6c0d1657affd6631cd0a63cddb6f73cc6d4aa616148",
+      "licence": "BSD-2-Clause",
+      "tool": true,
+      "systems": ["windows-x64", "linux-x64", "macos-universal"]
+    },
+    {
+      "name": "immuch360-run",
+      "version": "av2-companion 5dd92b1",
+      "url": "https://raw.githubusercontent.com/immuch360/av2-companion/5dd92b1d2bca801030b0c4dfbcd3fb1b9de2f8c2/launcher/immuch360_run.c",
+      "size": 2483,
+      "sha256": "11728daebcb3bb2f3677f1dc01c91477a1da9c3b10602b286645e6245179fa99",
+      "commit": "5dd92b1d2bca801030b0c4dfbcd3fb1b9de2f8c2",
+      "licence": "MIT",
+      "file": true,
+      "systems": ["linux-x64"]
+    },
+    {
+      "name": "immuch360-run-licence",
+      "version": "av2-companion 5dd92b1",
+      "url": "https://raw.githubusercontent.com/immuch360/av2-companion/5dd92b1d2bca801030b0c4dfbcd3fb1b9de2f8c2/licenses/immuch360-run-MIT.txt",
+      "size": 1156,
+      "sha256": "e1ca99633c8cb8df3e8189b0c4b804e91b6dca413ae4022ea3d905e0f94ef191",
+      "commit": "5dd92b1d2bca801030b0c4dfbcd3fb1b9de2f8c2",
+      "licence": "MIT",
+      "file": true,
+      "systems": ["linux-x64"]
+    }
+  ],
+  "containers": {
+    "windows-x64": {
+      "image": "debian:bookworm",
+      "digest": "sha256:268fb24c39bca92d326dd83ea3abebe4a3f7751c804ffef23bb6d857dd343ff8",
+      "apt": ["http://snapshot.debian.org/archive/debian/20261118T000000Z bookworm main", "http://snapshot.debian.org/archive/debian/20261118T000000Z bookworm-updates main", "http://snapshot.debian.org/archive/debian-security/20261118T000000Z bookworm-security main"],
+      "packages": ["autoconf", "automake", "binutils-mingw-w64-x86-64", "bzip2", "ca-certificates", "cmake", "curl", "file", "g++-mingw-w64-x86-64-posix", "gcc", "gcc-mingw-w64-x86-64-posix", "git", "libc6-dev", "libtool", "make", "mingw-w64-x86-64-dev", "pkgconf", "python3", "python3-venv", "xz-utils", "zip"]
+    },
+    "linux-x64": {
+      "image": "ubuntu:22.04",
+      "digest": "sha256:9abcaffc92a5279fff3a6a41635c0800ea33e528425fb389658806476e7defde",
+      "apt": ["http://snapshot.ubuntu.com/ubuntu/20261118T000000Z jammy main universe", "http://snapshot.ubuntu.com/ubuntu/20261118T000000Z jammy-updates main universe", "http://snapshot.ubuntu.com/ubuntu/20261118T000000Z jammy-security main universe"],
+      "packages": ["autoconf", "automake", "bzip2", "ca-certificates", "cmake", "curl", "file", "g++", "gcc", "git", "libdrm-dev", "libtool", "make", "patchelf", "pkg-config", "python3", "python3-venv", "xz-utils", "zip"]
+    },
+    "macos-universal": {
+      "runner": "macos-15",
+      "xcode": "26.3",
+      "minimum": "12.0",
+      "brew": ["autoconf", "automake", "libtool", "pkgconf"]
+    }
+  },
+  "python": "ffmpeg/requirements.txt",
+  "configure": {
+    "common": [
+      "--disable-everything", "--disable-autodetect", "--disable-gpl", "--disable-nonfree", "--enable-shared",
+      "--disable-static", "--disable-doc", "--disable-network", "--disable-ffplay", "--enable-ffmpeg",
+      "--enable-ffprobe", "--enable-avdevice", "--disable-debug", "--enable-zlib", "--enable-libzimg",
+      "--enable-libsvtav1", "--enable-libdav1d", "--pkg-config-flags=--static"
+    ],
+    "windows-x64": ["--enable-mediafoundation", "--enable-w32threads"],
+    "macos-universal": ["--enable-videotoolbox", "--enable-pthreads"],
+    "linux-x64": ["--enable-vaapi", "--enable-pthreads"]
+  },
+  "components": {
+    "encoder": {
+      "all": ["rawvideo", "aac", "libsvtav1"],
+      "windows-x64": ["h264_mf", "hevc_mf"],
+      "macos-universal": ["h264_videotoolbox", "hevc_videotoolbox"],
+      "linux-x64": ["h264_vaapi", "hevc_vaapi"]
+    },
+    "decoder": {
+      "all": ["h264", "hevc", "vp8", "vp9", "libdav1d", "mpeg1video", "mpeg2video", "mpeg4", "h263", "mjpeg", "prores", "dnxhd", "vc1", "wmv3", "theora", "rawvideo", "aac", "aac_latm", "ac3", "eac3", "mp2", "mp3", "opus", "vorbis", "flac", "alac", "truehd", "mlp", "dca", "pcm_alaw", "pcm_bluray", "pcm_dvd", "pcm_f16le", "pcm_f24le", "pcm_f32be", "pcm_f32le", "pcm_f64be", "pcm_f64le", "pcm_lxf", "pcm_mulaw", "pcm_s8", "pcm_s8_planar", "pcm_s16be", "pcm_s16be_planar", "pcm_s16le", "pcm_s16le_planar", "pcm_s24be", "pcm_s24daud", "pcm_s24le", "pcm_s24le_planar", "pcm_s32be", "pcm_s32le", "pcm_s32le_planar", "pcm_s64be", "pcm_s64le", "pcm_sga", "pcm_u8", "pcm_u16be", "pcm_u16le", "pcm_u24be", "pcm_u24le", "pcm_u32be", "pcm_u32le", "pcm_vidc"]
+    },
+    "demuxer": {
+      "all": ["mov", "matroska", "avi", "mpegts", "mpegps", "flv", "ogg", "asf", "m4v", "h264", "hevc", "concat", "rawvideo"]
+    },
+    "muxer": {
+      "all": ["mp4", "mov", "matroska", "rawvideo", "null"]
+    },
+    "parser": {
+      "all": ["h264", "hevc", "vp8", "vp9", "av1", "mpeg4video", "mpegvideo", "vc1", "aac", "aac_latm", "ac3", "mpegaudio", "opus", "vorbis", "flac", "dca", "mlp"]
+    },
+    "bsf": {
+      "all": ["h264_mp4toannexb", "hevc_mp4toannexb", "aac_adtstoasc", "extract_extradata", "dump_extradata"]
+    },
+    "filter": {
+      "all": ["scale", "format", "null", "anull", "aformat", "aresample", "transpose", "hflip", "vflip", "zscale", "tonemap", "fps", "select", "setpts", "setparams", "showinfo", "color", "apad", "atrim", "trim", "crop", "pad", "hwupload"]
+    },
+    "protocol": {
+      "all": ["file", "pipe"]
+    },
+    "indev": {
+      "all": ["lavfi"]
+    }
+  },
+  "pulled": {
+    "comment": "What configure enables beside the lists above, through the _select lines of FFmpeg's configure (build.py closure reads them; tests/test_ffmpeg.py checks this list against them): the vp3 decoder for theora, the bitstream filters of the vp9 decoder and of the MP4 and Matroska muxers, and the rotate filter the ffmpeg program always asks for.",
+    "decoder": ["vp3"],
+    "bsf": ["pgs_frame_merge", "vp9_superframe", "vp9_superframe_split"],
+    "filter": ["rotate"]
+  },
+  "printed": {
+    "comment": "The names the program prints where they differ from the names of configure, and what it always prints",
+    "demuxer": {"mov": "mov,mp4,m4a,3gp,3g2,mj2", "matroska": "matroska,webm", "mpegps": "mpeg"},
+    "filter_always": ["abuffer", "abuffersink", "buffer", "buffersink"]
+  },
+  "licences": [
+    {"text": "FFmpeg-COPYING.LGPLv2.1.txt", "source": "ffmpeg", "path": "COPYING.LGPLv2.1", "licence": "LGPL-2.1-or-later"},
+    {"text": "FFmpeg-LICENSE.md", "source": "ffmpeg", "path": "LICENSE.md", "licence": "LGPL-2.1-or-later"},
+    {"text": "FFmpeg-IJG.txt", "source": "ffmpeg", "path": "libavcodec/jrevdct.c", "lines": [2, 37], "licence": "IJG"},
+    {"text": "zimg-COPYING.txt", "source": "zimg", "path": "COPYING", "licence": "WTFPL"},
+    {"text": "SVT-AV1-LICENSE.md", "source": "svt-av1", "path": "LICENSE.md", "licence": "BSD-3-Clause-Clear"},
+    {"text": "SVT-AV1-LICENSE-BSD2.md", "source": "svt-av1", "path": "LICENSE-BSD2.md", "licence": "BSD-2-Clause"},
+    {"text": "SVT-AV1-PATENTS.md", "source": "svt-av1", "path": "PATENTS.md", "licence": "LicenseRef-AOM-Patent-License-1.0"},
+    {"text": "SVT-AV1-fastfeat-LICENSE.txt", "source": "svt-av1", "path": "third_party/fastfeat/LICENSE", "licence": "BSD-3-Clause"},
+    {"text": "SVT-AV1-safestringlib-LICENSE.txt", "source": "svt-av1", "path": "third_party/safestringlib/LICENSE", "licence": "MIT"},
+    {"text": "dav1d-COPYING.txt", "source": "dav1d", "path": "COPYING", "licence": "BSD-2-Clause"},
+    {"text": "dav1d-x86inc-ISC.txt", "source": "dav1d", "path": "src/ext/x86/x86inc.asm", "lines": [1, 21], "licence": "ISC"},
+    {"text": "zlib-LICENSE.txt", "source": "zlib", "path": "LICENSE", "licence": "Zlib"},
+    {"text": "libva-COPYING.txt", "source": "libva", "path": "COPYING", "licence": "MIT", "systems": ["linux-x64"]},
+    {"text": "immuch360-run-MIT.txt", "source": "immuch360-run-licence", "path": "", "licence": "MIT", "systems": ["linux-x64"]}
+  ],
+  "runtime_licences": {
+    "windows-x64": [
+      {"text": "mingw-gcc-runtime-copyright.txt", "from": "/usr/share/doc/gcc-mingw-w64-base/copyright", "what": "libgcc and libstdc++ of the mingw-w64 GCC, linked in statically (GPL-3.0-or-later WITH GCC-exception-3.1)"},
+      {"text": "mingw-w64-runtime-copyright.txt", "from": "/usr/share/doc/mingw-w64-x86-64-dev/copyright", "what": "the mingw-w64 runtime and winpthreads, linked in statically"}
+    ]
+  },
+  "permissive": ["LGPL-2.1-or-later", "WTFPL", "BSD-3-Clause-Clear", "BSD-2-Clause", "BSD-3-Clause", "MIT", "ISC", "Zlib", "IJG", "LicenseRef-AOM-Patent-License-1.0"],
+  "system_libraries": {
+    "windows-x64": ["advapi32.dll", "bcrypt.dll", "gdi32.dll", "kernel32.dll", "msvcrt.dll", "ole32.dll", "oleaut32.dll", "psapi.dll", "shell32.dll", "shlwapi.dll", "user32.dll", "ws2_32.dll"],
+    "linux-x64": ["ld-linux-x86-64.so.2", "libc.so.6", "libdl.so.2", "libdrm.so.2", "libgcc_s.so.1", "libm.so.6", "libpthread.so.0", "librt.so.1", "libstdc++.so.6"],
+    "macos-universal": ["/usr/lib/libSystem.B.dylib", "/usr/lib/libc++.1.dylib", "/usr/lib/libobjc.A.dylib", "/System/Library/Frameworks/*"]
+  },
+  "size_limit": {"windows-x64": 41943040, "linux-x64": 41943040, "macos-universal": 83886080},
+  "forbidden_options": ["--enable-gpl", "--enable-nonfree", "--enable-version3"],
+  "forbidden_words": ["libx264", "libx265", "libfdk", "openh264", "nvenc", "cuda", "amf", "qsv", "libmfx", "libvpl", "--enable-gpl", "--enable-nonfree"]
+}

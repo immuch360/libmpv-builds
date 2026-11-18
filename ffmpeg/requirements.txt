@@ -1,0 +1,11 @@
+# Meson and Ninja for the FFmpeg program (.github/workflows/ffmpeg.yml): dav1d and libva build with Meson. Installed
+# with pip --require-hashes in a virtual environment, so that what PyPI serves under these versions is checked against
+# the files as they were on 2026-11-18 (meson: the wheel and the source; ninja: the wheels of the Linux x64 and macOS
+# runners and the source)
+meson==1.12.1 \
+    --hash=sha256:930bc7542cbd9f57009e182fd014eba48cf1a0180a7b9006d2d32d8f168d8b02 \
+    --hash=sha256:ab0a6ca09f8ef70c564c8241fb5a23957886a0b53fb58412b5e07eaf07dba743
+ninja==1.13.0 \
+    --hash=sha256:fb46acf6b93b8dd0322adc3a4945452a4e774b75b91293bafcc7b7f8e6517dfa \
+    --hash=sha256:fa2a8bfc62e31b08f83127d1613d10821775a0eb334197154c4d6067b7068ff1 \
+    --hash=sha256:4a40ce995ded54d9dc24f8ea37ff3bf62ad192b547f6c7126e7e25045e76f978
