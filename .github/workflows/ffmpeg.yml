@@ -23,8 +23,8 @@ name: FFmpeg program for Immuch360
 #               snapshot.debian.org at a fixed date), twice in parallel (attempt 1 and 2)
 #   linux       in Ubuntu 22.04 (glibc 2.35, container pinned by its digest, packages from snapshot.ubuntu.com), twice
 #   macos       on macos-15 with a pinned Xcode: arm64 natively, x86_64 cross compiled, joined by lipo, signed ad hoc,
-#               twice
-#   same        the two attempts of Windows and of Linux must give the same archive, byte for byte; macOS is said
+#               once (macOS runners are scarce, and the same bytes there are best effort)
+#   same        the two attempts of Windows and of Linux must give the same archive, byte for byte
 #   test-*      the archive of attempt 1 on a runner of its system: the gate (build.py check --run) and what the app
 #               asks of it (smoke.py run). On a publish run, test-windows also signs every .exe and .dll by APROGSYS
 #               with Azure Artifact Signing (ffmpeg/windows_sign.py), checks them with signtool verify /pa and tests the
@@ -261,7 +261,15 @@ jobs:
           rm -f /etc/apt/sources.list.d/*.sources /etc/apt/sources.list.d/*.list /etc/apt/sources.list
           tr ';' '\n' <<< "$APT_SOURCES" > /etc/apt/sources.list
           cat /etc/apt/sources.list
-          apt-get -o Acquire::Retries=5 update -q
+          # The snapshot service turns runners away now and then (HTTP 401 or 500 for a minute): tried again
+          for attempt in 1 2 3 4 5 6; do
+            if apt-get -o Acquire::Retries=5 update -q 2>&1 | tee apt-update.log && ! grep -qE '^(E: |W: Failed to fetch)' apt-update.log; then
+              break
+            fi
+            if [ "$attempt" = 6 ]; then echo "::error::the snapshot archive refused six times"; exit 1; fi
+            echo "snapshot.ubuntu.com refused (attempt $attempt), trying again in $((attempt * 30)) s"
+            sleep $((attempt * 30))
+          done
           # shellcheck disable=SC2086 # the packages are words
           DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=5 install -y -q --no-install-recommends $PACKAGES
           gcc --version | sed -n 1p
@@ -330,9 +338,8 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 150
     strategy:
-      fail-fast: false
       matrix:
-        attempt: [1, 2]
+        attempt: [1]
     env:
       SOURCE_DATE_EPOCH: ${{ needs.plan.outputs.epoch }}
       TAG: ${{ needs.plan.outputs.tag }}
@@ -413,14 +420,14 @@ jobs:
 
   same:
     name: Two builds, the same bytes
-    needs: [windows, linux, macos]
+    needs: [windows, linux]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Download the archives of both attempts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          pattern: archive-*
+          pattern: archive-*-x64-*
           path: attempts
 
       - name: Compare
@@ -432,24 +439,20 @@ jobs:
             echo "| System | Attempt 1 | Attempt 2 | Same |"
             echo "|---|---|---|---|"
           } >> "$GITHUB_STEP_SUMMARY"
-          for system in windows-x64 linux-x64 macos-universal; do
+          for system in windows-x64 linux-x64; do
             one=$(sha256sum attempts/archive-$system-1/*.zip | cut -d' ' -f1)
             two=$(sha256sum attempts/archive-$system-2/*.zip | cut -d' ' -f1)
             same=yes
             if [ "$one" != "$two" ]; then
               same=no
-              if [ "$system" = macos-universal ]; then
-                echo "::warning::macOS: the two builds differ (best effort)"
-              else
-                echo "::error::$system: the two builds differ"
-                failed=1
-                mkdir -p "diff/$system/1" "diff/$system/2"
-                unzip -q attempts/archive-$system-1/*.zip -d "diff/$system/1"
-                unzip -q attempts/archive-$system-2/*.zip -d "diff/$system/2"
-                (cd "diff/$system/1" && sha256sum $(find . -type f | sort)) > "diff/$system-1.txt"
-                (cd "diff/$system/2" && sha256sum $(find . -type f | sort)) > "diff/$system-2.txt"
-                diff "diff/$system-1.txt" "diff/$system-2.txt" || true
-              fi
+              echo "::error::$system: the two builds differ"
+              failed=1
+              mkdir -p "diff/$system/1" "diff/$system/2"
+              unzip -q attempts/archive-$system-1/*.zip -d "diff/$system/1"
+              unzip -q attempts/archive-$system-2/*.zip -d "diff/$system/2"
+              (cd "diff/$system/1" && find . -type f | sort | xargs sha256sum) > "diff/$system-1.txt"
+              (cd "diff/$system/2" && find . -type f | sort | xargs sha256sum) > "diff/$system-2.txt"
+              diff "diff/$system-1.txt" "diff/$system-2.txt" || true
             fi
             echo "| $system | \`${one:0:16}\` | \`${two:0:16}\` | $same |" >> "$GITHUB_STEP_SUMMARY"
           done
