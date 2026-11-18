@@ -1,6 +1,6 @@
 {
   "comment": "The FFmpeg program of Immuch360 Desktop (ffmpeg and ffprobe, LGPL-2.1-or-later): every source by its address and the SHA-256 of its archive, the containers by their digests, the toolchains, the configure options and the exact lists of components the program must report. Read by ffmpeg/build.py and .github/workflows/ffmpeg.yml; checked by tests/test_ffmpeg.py. Resolved on 18 November 2026.",
-  "id": "9.0.2-1",
+  "id": "9.0.2-2",
   "ffmpeg": {
     "version": "9.0.2",
     "tag": "n9.0.2",
@@ -182,12 +182,29 @@
     {"text": "SVT-AV1-PATENTS.md", "source": "svt-av1", "path": "PATENTS.md", "licence": "LicenseRef-AOM-Patent-License-1.0"},
     {"text": "SVT-AV1-fastfeat-LICENSE.txt", "source": "svt-av1", "path": "third_party/fastfeat/LICENSE", "licence": "BSD-3-Clause"},
     {"text": "SVT-AV1-safestringlib-LICENSE.txt", "source": "svt-av1", "path": "third_party/safestringlib/LICENSE", "licence": "MIT"},
+    {"text": "SVT-AV1-vector-MIT.txt", "source": "svt-av1", "path": "Source/Lib/Codec/vector.c", "lines": [1, 20], "licence": "MIT"},
     {"text": "dav1d-COPYING.txt", "source": "dav1d", "path": "COPYING", "licence": "BSD-2-Clause"},
     {"text": "dav1d-x86inc-ISC.txt", "source": "dav1d", "path": "src/ext/x86/x86inc.asm", "lines": [1, 21], "licence": "ISC"},
     {"text": "zlib-LICENSE.txt", "source": "zlib", "path": "LICENSE", "licence": "Zlib"},
     {"text": "libva-COPYING.txt", "source": "libva", "path": "COPYING", "licence": "MIT", "systems": ["linux-x64"]},
     {"text": "immuch360-run-MIT.txt", "source": "immuch360-run-licence", "path": "", "licence": "MIT", "systems": ["linux-x64"]}
   ],
+  "notice_scan": {
+    "comment": "The files of the libraries built into the program whose own header grants a licence other than that of their library (an MIT, ISC or BSD notice): each must be named here with the text of licenses/ that carries its notice, and every copyright holder of its header must appear in that text. build.py licences --src reads every file of the compiled folders below (tests, tools, examples and the processors no system of the lock builds for left out). Added in 1.3.1, after the MIT notice of vector.c in SVT-AV1 was found missing from the archives of ffmpeg-lgpl-20261118-7.",
+    "sources": {
+      "svt-av1": {"kinds": ["BSD"], "compiled": ["Source/Lib/*", "third_party/aom/*", "third_party/aom_dsp/*", "third_party/fastfeat/*", "third_party/safestringlib/*"]},
+      "dav1d": {"kinds": ["BSD"], "compiled": ["src/*", "include/*"], "not_compiled": ["src/loongarch/*", "src/ppc/*", "src/riscv/*"]},
+      "zimg": {"kinds": [], "compiled": ["src/*"]},
+      "zlib": {"kinds": [], "compiled": ["*.c", "*.h"], "not_compiled": ["*/*"]},
+      "libva": {"kinds": ["MIT"], "compiled": ["va/*"]}
+    },
+    "covered": [
+      {"source": "svt-av1", "paths": ["Source/Lib/Codec/vector.c", "Source/Lib/Codec/vector.h"], "text": "SVT-AV1-vector-MIT.txt"},
+      {"source": "svt-av1", "paths": ["third_party/safestringlib/*"], "text": "SVT-AV1-safestringlib-LICENSE.txt"},
+      {"source": "svt-av1", "paths": ["Source/Lib/ASM_SSE2/x86inc.asm", "Source/Lib/ASM_AVX2/dav1d_x86inc.asm"], "text": "dav1d-x86inc-ISC.txt"},
+      {"source": "dav1d", "paths": ["src/ext/x86/x86inc.asm"], "text": "dav1d-x86inc-ISC.txt"}
+    ]
+  },
   "runtime_licences": {
     "windows-x64": [
       {"text": "mingw-gcc-runtime-copyright.txt", "from": "/usr/share/doc/gcc-mingw-w64-base/copyright", "what": "libgcc and libstdc++ of the mingw-w64 GCC, linked in statically (GPL-3.0-or-later WITH GCC-exception-3.1)"},

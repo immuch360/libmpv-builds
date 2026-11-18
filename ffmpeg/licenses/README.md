@@ -17,6 +17,7 @@ in `BUILD-INFO.txt`; `ffmpeg -buildconf` and `ffmpeg -L` print it and the licenc
 | zimg, the scaler and colour converter of the `zscale` filter (tone mapping) | https://github.com/sekrit-twc/zimg, release 3.0.6, static library | WTFPL | `zimg-COPYING.txt` |
 | SVT-AV1, the AV1 encoder (`libsvtav1`) | https://gitlab.com/AOMediaCodec/SVT-AV1, v3.1.2, static library | BSD 3-Clause Clear (files of v0.8.7 and before: BSD 2-Clause), with the Alliance for Open Media Patent License 1.0 | `SVT-AV1-LICENSE.md`, `SVT-AV1-LICENSE-BSD2.md`, `SVT-AV1-PATENTS.md` |
 | FAST corner detector and safestringlib, inside SVT-AV1 | `third_party/fastfeat`, `third_party/safestringlib` of SVT-AV1 | BSD 3-Clause; MIT | `SVT-AV1-fastfeat-LICENSE.txt`, `SVT-AV1-safestringlib-LICENSE.txt` |
+| The vector of Peter Goldsborough, inside SVT-AV1 (`Source/Lib/Codec/vector.c` and `vector.h`, used by its hash based motion search) | SVT-AV1 | MIT, Copyright(c) 2016 Peter Goldsborough | `SVT-AV1-vector-MIT.txt` (the header of the file) |
 | dav1d, the AV1 decoder (`libdav1d`) | https://code.videolan.org/videolan/dav1d, 1.5.5, static library | BSD 2-Clause | `dav1d-COPYING.txt` |
 | `x86inc.asm` of the x264 project, part of dav1d | `src/ext/x86/x86inc.asm` of dav1d | ISC | `dav1d-x86inc-ISC.txt` (its header) |
 | zlib | https://zlib.net, 1.3.2, static library | zlib licence | `zlib-LICENSE.txt` |
@@ -29,7 +30,9 @@ Nothing under the GPL or a non free licence is built in: the CI refuses a config
 without `CONFIG_GPL 0` and `CONFIG_NONFREE 0`, an `ffmpeg -L` that does not name the LGPL 2.1 or later, a list of
 encoders, decoders, formats, filters, bitstream filters or protocols other than that of `sources.lock`, and a program or
 library that loads anything but the system's libraries and the archive's own. Every text of this folder is compared with
-the file of the sources it comes from at each build.
+the file of the sources it comes from at each build, and every file compiled from SVT-AV1, dav1d, zimg, zlib and
+libva whose header grants another licence than its library's must have its notice, with its copyright holders, in
+one of these texts (`notice_scan` of `sources.lock`).
 
 The corresponding source (LGPL 2.1, section 6) is offered from the same place as this archive: `FFmpeg-SOURCE.txt`
 gives the address of the sources asset of the release and the commits. Patents: `PATENTS-NOTE.md`.

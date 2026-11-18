@@ -230,7 +230,7 @@ to 3D video conversion and runs it as a separate program.
   no Apache-2.0 library is linked in.
 - **The libraries built in** are under permissive licences: zimg (WTFPL), SVT-AV1 (BSD 3-Clause Clear, older files BSD
   2-Clause, with the Alliance for Open Media Patent License 1.0, and inside it the FAST detector, BSD 3-Clause, and
-  safestringlib, MIT), dav1d (BSD 2-Clause, with `x86inc.asm` under ISC), zlib (zlib licence), and on Linux libva
+  safestringlib, MIT, and the vector of `vector.c`, MIT, Copyright(c) 2016 Peter Goldsborough), dav1d (BSD 2-Clause, with `x86inc.asm` under ISC), zlib (zlib licence), and on Linux libva
   (MIT). The Windows archive links the GCC runtime (GPL 3 or later with the GCC Runtime Library Exception 3.1, which
   lets the compiled program be distributed under any licence) and winpthreads (MIT) statically. The table of
   `licenses/README.md` in each archive gives each text; the CI compares every one with the source it comes from.

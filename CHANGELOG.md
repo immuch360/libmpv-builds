@@ -5,6 +5,17 @@ The versions of this file are those of the recipe. The archives have releases of
 of the recipe that built them, `libmpv-android-<date>-<number>` (re-hosted, `android/README.md`), and
 `ffmpeg-lgpl-<date>-<run number>` for the FFmpeg program (since 1.3.0).
 
+## 1.3.1 (2026-11-19)
+
+- The FFmpeg program, build 9.0.2-2: `licenses/SVT-AV1-vector-MIT.txt`, the MIT notice of Peter Goldsborough at the
+  head of `Source/Lib/Codec/vector.c` of SVT-AV1 (with `vector.h`, used by its hash based motion search and compiled
+  into libsvtav1, so into the avcodec library of every archive). The archives of `ffmpeg-lgpl-20261118-7` lacked it;
+  MIT asks for the notice in every copy. The table of `licenses/README.md` and `NOTICES.md` name it.
+- A gate for the next one: `build.py licences --src` reads every file compiled from SVT-AV1, dav1d, zimg, zlib and libva
+  (`notice_scan` of `sources.lock`); a header that grants an MIT, ISC or BSD licence other than its library's must be
+  listed there with the text of `licenses/` that carries it, and that text must name every copyright holder of the
+  header. `tests/test_ffmpeg.py` checks the scan on small trees.
+
 ## 1.3.0 (2026-11-18)
 
 - The FFmpeg program for the 2D to 3D video conversion of Immuch360 Desktop: `.github/workflows/ffmpeg.yml` and

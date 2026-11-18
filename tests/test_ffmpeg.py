@@ -143,6 +143,17 @@ class Licences(unittest.TestCase):
         self.assertIn('Alliance for Open Media Patent License 1.0',
                       (FFMPEG / 'licenses' / 'SVT-AV1-PATENTS.md').read_text(encoding='utf-8'))
 
+    def test_vector_notice_of_svt_av1_shipped(self):
+        lock = build.load_lock()
+        entry = next(item for item in lock['licences'] if item['text'] == 'SVT-AV1-vector-MIT.txt')
+        self.assertEqual((entry['source'], entry['path'], entry['lines'], entry['licence']),
+                         ('svt-av1', 'Source/Lib/Codec/vector.c', [1, 20], 'MIT'))
+        text = (FFMPEG / 'licenses' / 'SVT-AV1-vector-MIT.txt').read_text(encoding='utf-8')
+        self.assertIn('Copyright(c) 2016 Peter Goldsborough', text)
+        self.assertIn('Permission is hereby granted, free of charge', text)
+        self.assertIn('SVT-AV1-vector-MIT.txt', (FFMPEG / 'licenses' / 'README.md').read_text(encoding='utf-8'))
+        self.assertIn('Goldsborough', (ROOT / 'NOTICES.md').read_text(encoding='utf-8'))
+
     def test_patent_note(self):
         text = (FFMPEG / 'licenses' / 'PATENTS-NOTE.md').read_text(encoding='utf-8')
         for words in ('H.264', 'HEVC', 'AAC', 'Media Foundation', 'VideoToolbox', 'VA-API', 'royalty free',
@@ -157,6 +168,79 @@ class Licences(unittest.TestCase):
         self.assertIn('https://github.com/immuch360/libmpv-builds/releases/download/ffmpeg-lgpl-20261118-1/'
                       'ffmpeg-lgpl-20261118-1-sources.tar.xz', note)
         self.assertIn(lock['ffmpeg']['commit'], note)
+
+
+MIT_HEADER = '''/*
+Copyright(c) 2016 Some Author
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+*/
+int f(void) { return 0; }
+'''
+BSD_HEADER = '''/* Copyright (c) 2019, Alliance for Open Media. All rights reserved
+ * Redistribution and use in source and binary forms, with or without
+ */
+'''
+
+
+class NoticeScan(unittest.TestCase):
+    """The gate on the notices of the files compiled into the program (sources.lock, notice_scan)"""
+
+    def setUp(self):
+        self.folder = Path(tempfile.mkdtemp())
+        self.src = self.folder / 'src'
+        self.licences = self.folder / 'licenses'
+        (self.src / 'svt-av1' / 'Source' / 'Lib' / 'Codec').mkdir(parents=True)
+        (self.src / 'svt-av1' / 'third_party' / 'googletest').mkdir(parents=True)
+        self.licences.mkdir()
+        (self.src / 'svt-av1' / 'Source' / 'Lib' / 'Codec' / 'mode.c').write_text(BSD_HEADER, encoding='utf-8')
+        # Not compiled: never read
+        (self.src / 'svt-av1' / 'third_party' / 'googletest' / 'gtest.cc').write_text(MIT_HEADER, encoding='utf-8')
+        self.lock = {
+            'sources': [{'name': 'svt-av1', 'systems': ['linux-x64']}],
+            'notice_scan': {'sources': {'svt-av1': {'kinds': ['BSD'], 'compiled': ['Source/Lib/*']}}, 'covered': []},
+        }
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.folder)
+
+    def problems(self, system=None):
+        return build.notice_problems(self.lock, self.src, self.licences, system)
+
+    def test_the_library_own_kind_and_files_not_compiled_pass(self):
+        self.assertEqual(self.problems(), [])
+
+    def test_an_mit_file_no_text_carries_is_refused(self):
+        (self.src / 'svt-av1' / 'Source' / 'Lib' / 'Codec' / 'vector.c').write_text(MIT_HEADER, encoding='utf-8')
+        self.assertEqual(self.problems(), ['svt-av1/Source/Lib/Codec/vector.c: its MIT notice is in no text of '
+                                           'licenses/ (sources.lock, notice_scan)'])
+        # Another system's sources are not read
+        self.assertEqual(self.problems('windows-x64'), [])
+
+    def test_a_covering_text_must_name_the_holder(self):
+        (self.src / 'svt-av1' / 'Source' / 'Lib' / 'Codec' / 'vector.c').write_text(MIT_HEADER, encoding='utf-8')
+        self.lock['notice_scan']['covered'] = [
+            {'source': 'svt-av1', 'paths': ['Source/Lib/Codec/vector.c'], 'text': 'vector.txt'}]
+        self.assertEqual(self.problems(), ['svt-av1/Source/Lib/Codec/vector.c: no licenses/vector.txt'])
+        (self.licences / 'vector.txt').write_text('Copyright(c) 2016 Another Author\n', encoding='utf-8')
+        self.assertEqual(self.problems(), ["svt-av1/Source/Lib/Codec/vector.c: licenses/vector.txt does not name "
+                                           "'Some Author'"])
+        (self.licences / 'vector.txt').write_text(MIT_HEADER, encoding='utf-8')
+        self.assertEqual(self.problems(), [])
+
+    def test_holders_without_years(self):
+        self.assertEqual(build.copyright_holders(b';* Copyright (C) 2005-2016 x264 project\n'), ['x264 project'])
+        self.assertEqual(build.copyright_holders(b' * Copyright (c) 2019, Alliance for Open Media. All rights reserved'),
+                         ['Alliance for Open Media'])
+        self.assertEqual(build.copyright_holders(b'The above copyright notice and this permission notice'), [])
+
+    def test_the_lock_scans_the_libraries(self):
+        scan = build.load_lock()['notice_scan']
+        self.assertEqual(set(scan['sources']), {'svt-av1', 'dav1d', 'zimg', 'zlib', 'libva'})
+        covered = {path for item in scan['covered'] for path in item['paths']}
+        self.assertIn('Source/Lib/Codec/vector.c', covered)
+        self.assertIn('Source/Lib/Codec/vector.h', covered)
 
 
 class Archive(unittest.TestCase):

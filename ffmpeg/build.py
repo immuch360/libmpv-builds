@@ -25,6 +25,8 @@ and writes no cache next to itself.
       which must be those of the lock (CONFIG_GPL 0, CONFIG_NONFREE 0, CONFIG_VERSION3 0)
   build.py licences [--src DIR]
       each text of licenses/ equal to the file of the sources it comes from (sources.lock, "licences"), and no other
+      text; every file compiled from the libraries whose header grants another licence than its library's carried,
+      with its copyright holders, by one of them (sources.lock, "notice_scan")
   build.py archive --system SYSTEM --work DIR --src DIR --out DIR --tag TAG [--commit SHA] [--repo OWNER/NAME]
       Immuch360-ffmpeg-<version>-<build>-<system>.zip: bin/ (and lib/), licenses/, BUILD-INFO.txt, SHA256SUMS.txt; sorted
       names, fixed dates and modes, so that the same files give the same bytes
@@ -815,6 +817,88 @@ def licence_problems(lock: dict, src: pathlib.Path | None, licences: pathlib.Pat
         for part in re.split(r'\s+AND\s+', source['licence']):
             if part not in permissive:
                 problems.append(f'{source["name"]}: {part} is not a licence the lock allows')
+    if src is not None:
+        problems += notice_problems(lock, src, licences, system)
+    return problems
+
+
+# The words of the licence grants a header may hold, by kind
+GRANTS = {
+    'MIT': re.compile(rb'Permission is hereby granted, free of charge'),
+    'ISC': re.compile(rb'Permission to use, copy, modify, and(?:/or)? distribute'),
+    'BSD': re.compile(rb'Redistribution and use in source and binary forms'),
+}
+CODE_SUFFIXES = ('.c', '.cc', '.cpp', '.h', '.hpp', '.asm', '.S', '.inc')
+# The header of a file: where its notice is
+HEADER_BYTES = 8192
+COPYRIGHT_LINE = re.compile(r'Copyright\s*(?:\([cC]\)|©)?\s*(?:[0-9]{4}(?:\s*[-,]\s*[0-9]{4})*\s*,?)?\s*(.+)')
+
+
+def grant_kinds(header: bytes) -> set:
+    """The kinds of licence grant a header holds"""
+    return {kind for kind, words in GRANTS.items() if words.search(header)}
+
+
+def copyright_holders(header: bytes) -> list:
+    """The holders of the Copyright lines of a header, without the years and "All rights reserved\""""
+    holders = []
+    for line in header.decode('utf-8', 'replace').splitlines():
+        found = COPYRIGHT_LINE.search(line)
+        if not found:
+            continue
+        holder = re.sub(r'\s*All rights reserved\.?\s*$', '', found.group(1).strip(), flags=re.IGNORECASE)
+        holder = holder.strip(' .,;*/')
+        if holder and not holder.lower().startswith(('notice', 'holder')):
+            holders.append(holder)
+    return holders
+
+
+def notice_problems(lock: dict, src: pathlib.Path, licences: pathlib.Path = LICENCES,
+                    system: str | None = None) -> list:
+    """The files compiled into the program (sources.lock, notice_scan) whose header grants a licence of another kind
+    than their library's and that no text of licenses/ covers, or whose copyright holders that text does not name"""
+    scan = lock.get('notice_scan')
+    if not scan:
+        return ['sources.lock has no notice_scan']
+    problems = []
+    entries = {entry['name']: entry for entry in lock['sources']}
+    for name, rule in scan['sources'].items():
+        entry = entries.get(name)
+        if entry is None:
+            problems.append(f'notice_scan: {name} is not a source of the lock')
+            continue
+        if system is not None and system not in entry.get('systems', SYSTEMS):
+            continue
+        folder = src / name
+        if not folder.is_dir():
+            problems.append(f'notice_scan: no {folder}')
+            continue
+        for path in sorted(folder.rglob('*')):
+            if not path.is_file() or path.suffix not in CODE_SUFFIXES:
+                continue
+            relative = path.relative_to(folder).as_posix()
+            if not any(fnmatch.fnmatchcase(relative, glob) for glob in rule['compiled']) or \
+                    any(fnmatch.fnmatchcase(relative, glob) for glob in rule.get('not_compiled', [])):
+                continue
+            with path.open('rb') as handle:
+                header = handle.read(HEADER_BYTES)
+            other = sorted(grant_kinds(header) - set(rule['kinds']))
+            if not other:
+                continue
+            cover = next((item for item in scan['covered'] if item['source'] == name and
+                          any(fnmatch.fnmatchcase(relative, glob) for glob in item['paths'])), None)
+            if cover is None:
+                problems.append(f'{name}/{relative}: its {" and ".join(other)} notice is in no text of licenses/ '
+                                '(sources.lock, notice_scan)')
+                continue
+            text_path = licences / cover['text']
+            if not text_path.is_file():
+                problems.append(f'{name}/{relative}: no licenses/{cover["text"]}')
+                continue
+            text = text_path.read_bytes().decode('utf-8', 'replace')
+            for holder in copyright_holders(header):
+                if holder not in text:
+                    problems.append(f'{name}/{relative}: licenses/{cover["text"]} does not name {holder!r}')
     return problems
 
 
