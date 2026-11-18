@@ -212,3 +212,50 @@ The libraries are linked statically into `libmpv.so`, which needs only Android's
 ### Credits some of these licences ask for
 
 - Portions of this software are copyright © The FreeType Project (https://freetype.org). All rights reserved.
+
+## The FFmpeg program for Immuch360 (releases `ffmpeg-lgpl-*`)
+
+Each release has one archive per system, `Immuch360-ffmpeg-<version>-<build>-<system>.zip` for `windows-x64`,
+`linux-x64` and `macos-universal`: `ffmpeg` and `ffprobe` with the shared libraries of FFmpeg (beside the programs on
+Windows, in `lib/` elsewhere; on Linux also libva, libva-drm and `immuch360-run`), `licenses/`, `BUILD-INFO.txt`, which
+names every source with its SHA-256, the toolchains and the exact configure lines, and `SHA256SUMS.txt`. Built by
+`.github/workflows/ffmpeg.yml` from `ffmpeg/sources.lock`. Immuch360 Desktop downloads one when the user asks for its 2D
+to 3D video conversion and runs it as a separate program.
+
+### Licence
+
+- **FFmpeg** is configured with `--disable-gpl --disable-nonfree` and without `--enable-version3`: the programs and
+  libraries are under the **GNU Lesser General Public License version 2.1 or later** as a whole (FFmpeg's
+  `COPYING.LGPLv2.1` and `LICENSE.md`, `ffmpeg -L`). Unlike the libmpv archives above, nothing in them needs version 3:
+  no Apache-2.0 library is linked in.
+- **The libraries built in** are under permissive licences: zimg (WTFPL), SVT-AV1 (BSD 3-Clause Clear, older files BSD
+  2-Clause, with the Alliance for Open Media Patent License 1.0, and inside it the FAST detector, BSD 3-Clause, and
+  safestringlib, MIT), dav1d (BSD 2-Clause, with `x86inc.asm` under ISC), zlib (zlib licence), and on Linux libva
+  (MIT). The Windows archive links the GCC runtime (GPL 3 or later with the GCC Runtime Library Exception 3.1, which
+  lets the compiled program be distributed under any licence) and winpthreads (MIT) statically. The table of
+  `licenses/README.md` in each archive gives each text; the CI compares every one with the source it comes from.
+- **The IJG credit** FFmpeg's `LICENSE.md` asks for: this software is based in part on the work of the Independent JPEG
+  Group (`licenses/FFmpeg-IJG.txt`).
+- **Nothing GPL or non free**: no libx264, libx265, libfdk, OpenH264, NVENC, AMF or QSV. The gate of every job refuses
+  a configure line with `--enable-gpl`, `--enable-nonfree` or `--enable-version3`, a `config.h` without
+  `CONFIG_GPL 0` and `CONFIG_NONFREE 0`, an `ffmpeg -L` that does not print the LGPL 2.1 or later, any encoder, decoder,
+  format, filter, bitstream filter or protocol outside the lists of `sources.lock`, and any library loaded from outside
+  the system and the archive.
+- **Patents**: `licenses/PATENTS-NOTE.md`. No patent licence is granted.
+
+### Your rights
+
+- **Use another build.** The programs load the FFmpeg libraries of their own folder, separate files you may replace
+  with your own build of the same version.
+- **Get the corresponding source.** Each release carries `<tag>-sources.tar.xz`, offered from the same place as the
+  archives (LGPL 2.1, section 6): every source archive of the lock as downloaded and checked, the recipe at the commit
+  that built the release, and the `BUILD-INFO.txt` of each archive with the exact configure lines. The Windows and
+  Linux builds run in containers pinned by their digests with packages from the snapshot archives of a fixed date, and
+  two builds in the same run must give the same bytes.
+
+### Signatures
+
+On Windows every `.exe` and `.dll` is signed by APROGSYS with Azure Artifact Signing, on publish runs only; the release
+job refuses an unsigned Windows archive. The macOS programs and libraries carry an ad hoc signature, not a Developer ID
+one, and are not notarised. The Linux files carry none. The app checks every archive and every file in it by its
+SHA-256.

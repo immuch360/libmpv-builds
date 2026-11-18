@@ -17,6 +17,9 @@ For Android, the `libmpv-android-*` releases re-host media-kit's own libmpv (lib
 the archives `media_kit_libs_android_video` downloads) with its corresponding source, fetched at the commits it was
 built from, and a script that rebuilds it: [android/README.md](android/README.md).
 
+The `ffmpeg-lgpl-*` releases hold an FFmpeg program, ffmpeg and ffprobe under the LGPL 2.1 or later, for Windows,
+Linux and macOS: [The FFmpeg program](#the-ffmpeg-program) below.
+
 These builds play the videos of [Immuch360](https://github.com/freeKC/Immuch360) Desktop
 ([immuch360.com](https://immuch360.com)), where the recipe was first written.
 
@@ -161,6 +164,57 @@ let package = Package(
 `Placebo.framework` is new compared with media-kit's frameworks: mpv needs libplacebo since 0.37. The frameworks are
 built for macOS 12 and later. Immuch360 keeps this package in `mobile/packages/media_kit_libs_macos_video`.
 
+## The FFmpeg program
+
+[![FFmpeg program](https://github.com/immuch360/libmpv-builds/actions/workflows/ffmpeg.yml/badge.svg)](https://github.com/immuch360/libmpv-builds/actions/workflows/ffmpeg.yml)
+
+libmpv plays but cannot encode. Immuch360 Desktop turns flat videos into 3D side by side videos (experimental), and
+for that it runs FFmpeg as a separate program: one process decodes the source to raw RGB frames on a pipe, another
+encodes side by side frames from a pipe into segments marked left right, a third joins them with the source's sound
+and tags into an MP4 whose `st3d` box says left right. `.github/workflows/ffmpeg.yml` builds that program from the
+sources of `ffmpeg/sources.lock`:
+
+| | |
+|---|---|
+| FFmpeg | 9.0.2, the release tarball by its SHA-256, shared libraries with `ffmpeg` and `ffprobe` |
+| Licence | LGPL 2.1 or later as a whole (`--disable-gpl --disable-nonfree`, no `--enable-version3`), `NOTICES.md` |
+| Encoders | H.264 and HEVC of the system (Media Foundation, VideoToolbox, VA-API), AV1 (SVT-AV1), AAC, raw video |
+| Decoders | H.264, HEVC, VP8, VP9, AV1 (dav1d), MPEG-1, 2 and 4, H.263, MJPEG, ProRes, DNxHD, VC-1, Theora; AAC, AC-3, E-AC-3, MP2, MP3, Opus, Vorbis, FLAC, ALAC, PCM, TrueHD, DTS |
+| Formats | MP4, MOV, Matroska and WebM, AVI, MPEG-TS and PS, FLV, Ogg, ASF, concat; writes MP4, MOV, Matroska, raw |
+| Filters | scale, zscale and tonemap (HDR to SDR), transpose, fps, showinfo and the others of the lock |
+| Protocols | `file` and `pipe` only: no network |
+| Windows x64 | cross compiled with mingw-w64 in Debian 12, GCC runtime and winpthreads static, signed by APROGSYS |
+| Linux x64 | Ubuntu 22.04 (glibc 2.35), libva shipped in `lib/`, `immuch360-run` beside the programs |
+| macOS | arm64 and x86_64 joined by lipo, macOS 12 and later, ad hoc signature |
+
+A release is tagged `ffmpeg-lgpl-<date>-<run number>`, a prerelease never marked latest:
+
+| File | Content |
+|---|---|
+| `Immuch360-ffmpeg-<version>-<build>-<system>.zip` | `bin/`, `lib/` (not on Windows), `licenses/`, `BUILD-INFO.txt`, `SHA256SUMS.txt` |
+| `<tag>-sources.tar.xz` | the corresponding source: every source archive, the recipe, the configure lines |
+| `ffmpeg-lgpl-<tag>.json` | each archive with its address, size and SHA-256, every file in it with its size, SHA-256 and mode |
+| `SHA256SUMS.txt` | the SHA-256 of every file of the release |
+
+The gate of every job: the configure line without `--enable-gpl`, `--enable-nonfree` or `--enable-version3` nor any
+GPL or non free library, `config.h` with `CONFIG_GPL 0` and `CONFIG_NONFREE 0`, `ffmpeg -L` printing the LGPL 2.1 or
+later, `-encoders`, `-decoders`, `-muxers`, `-demuxers`, `-filters`, `-protocols` and `-bsfs` equal to the lock,
+only system libraries besides the archive's own, every licence text equal to its source, under 40 MB unpacked (80 MB
+for the macOS universal set). Then, on a runner of each system, `ffmpeg/smoke.py` does what the app does on test clips
+(H.264, HEVC, AV1, VP9, VP8, MPEG-2, ProRes, MJPEG in MP4, Matroska, WebM, MPEG-TS, MOV and AVI): decode to RGB on a
+pipe with the timestamps of `-stats_enc_pre`, a 10 bit HLG phone style clip turned and tone mapped, the one second test
+of each encoder the runner allows (SVT-AV1 always), side by side segments joined into an MP4 with one `st3d` box of
+mode 2, the sound copied or made AAC and the tags of the source kept. Windows and Linux are built twice in the same
+run and must give the same bytes.
+
+```sh
+gh workflow run ffmpeg.yml --repo immuch360/libmpv-builds -f publish=true
+```
+
+A pull request that changes `ffmpeg/` or the workflow builds and checks the three systems and publishes nothing.
+Signing the Windows files needs the secrets `AZURE_TENANT_ID`, `AZURE_CLIENT_ID` and `AZURE_CLIENT_SECRET` of the
+signing account, given to the signing step of a publish run only.
+
 ## Rebuild with a newer FFmpeg
 
 On Windows, FFmpeg and mpv are inputs of the workflow, so an FFmpeg security release is one dispatch:
@@ -256,6 +310,8 @@ job stays under the 6 hour limit of hosted jobs.
 - **This repository** (the workflows, scripts, tests and recipe files): MIT, `LICENSE`. The files made from the macOS
   recipe keep its MIT notice. The two Windows CMake files are made from shinchiro's recipe, which publishes no licence,
   so the MIT licence covers the changes made here only. `LICENSE` lists them.
+- **The FFmpeg program** (`ffmpeg-lgpl-*`): GNU LGPL version 2.1 or later as a whole, `NOTICES.md` and
+  `licenses/README.md` of each archive.
 - **The archives**: libmpv with FFmpeg as built is under the GNU LGPL version 3 or later as a whole, on Android too,
   each library keeping its own licence (OpenSSL and Mbed TLS under Apache-2.0, for example). `NOTICES.md` lists every
   library, its licence and your rights; the licence texts are in `licenses/` and in each archive.

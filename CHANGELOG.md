@@ -2,7 +2,23 @@
 
 The versions of this file are those of the recipe. The archives have releases of their own, tagged
 `libmpv-windows-<date>-<run number>` and `libmpv-macos-<date>-<run number>`, whose `BUILDINFO` files name the commit
-of the recipe that built them, and `libmpv-android-<date>-<number>` (re-hosted, `android/README.md`).
+of the recipe that built them, `libmpv-android-<date>-<number>` (re-hosted, `android/README.md`), and
+`ffmpeg-lgpl-<date>-<run number>` for the FFmpeg program (since 1.3.0).
+
+## 1.3.0 (2026-11-18)
+
+- The FFmpeg program for the 2D to 3D video conversion of Immuch360 Desktop: `.github/workflows/ffmpeg.yml` and
+  `ffmpeg/` build ffmpeg and ffprobe 9.0.2 with their shared libraries, under the LGPL 2.1 or later, for Windows x64
+  (mingw-w64 in Debian 12), Linux x64 (Ubuntu 22.04) and macOS (arm64 and x86_64 in one, macOS 12 and later), from
+  sources pinned by their SHA-256 in `ffmpeg/sources.lock`, in containers pinned by their digests. H.264 and HEVC
+  through the encoders of the system, AV1 by SVT-AV1 3.1.2, AAC; dav1d 1.5.5, zimg 3.0.6 for the tone map, zlib 1.3.2,
+  libva 2.24.1 on Linux; no GPL or non free part. The gate refuses anything else, and each system runs on test clips
+  what the app asks of it. Releases `ffmpeg-lgpl-<date>-<run>`, prereleases never marked latest, with the corresponding
+  source and a manifest for a catalogue of components; the Windows files signed by APROGSYS.
+- The repository now has secrets: the three credentials of the signing account, for the signing step of a publish run
+  of `ffmpeg.yml` only. `build.yml` still uses none.
+- `tests/test_ffmpeg.py`: the lock, the licence texts, the archive writer, the parsers of the gate and the rules of the
+  workflow.
 
 ## 1.2.0 (2026-11-13)
 
